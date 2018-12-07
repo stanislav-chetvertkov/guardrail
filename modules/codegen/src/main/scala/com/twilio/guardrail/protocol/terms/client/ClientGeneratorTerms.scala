@@ -2,12 +2,11 @@ package com.twilio.guardrail.protocol.terms.client
 
 import cats.InjectK
 import cats.free.Free
-import com.twilio.guardrail.{ RenderedClientOperation, StrictProtocolElems }
+import com.twilio.guardrail.{RenderedClientOperation, StrictProtocolElems}
 import com.twilio.guardrail.generators.GeneratorSettings
 import com.twilio.guardrail.languages.LA
 import com.twilio.guardrail.terms.RouteMeta
-
-import _root_.io.swagger.models.Operation
+import io.swagger.v3.oas.models.Operation
 
 class ClientTerms[L <: LA, F[_]](implicit I: InjectK[ClientTerm[L, ?], F]) {
   def generateClientOperation(className: List[String], tracing: Boolean, protocolElems: List[StrictProtocolElems[L]])(
@@ -18,8 +17,10 @@ class ClientTerms[L <: LA, F[_]](implicit I: InjectK[ClientTerm[L, ?], F]) {
     Free.inject[ClientTerm[L, ?], F](GetImports[L](tracing))
   def getExtraImports(tracing: Boolean): Free[F, List[L#Import]] =
     Free.inject[ClientTerm[L, ?], F](GetExtraImports[L](tracing))
+
   def clientClsArgs(tracingName: Option[String], schemes: List[String], host: Option[String], tracing: Boolean): Free[F, List[List[L#MethodParameter]]] =
     Free.inject[ClientTerm[L, ?], F](ClientClsArgs[L](tracingName, schemes, host, tracing))
+
   def generateResponseDefinitions(operation: Operation, protocolElems: List[StrictProtocolElems[L]]): Free[F, List[L#Definition]] =
     Free.inject[ClientTerm[L, ?], F](GenerateResponseDefinitions[L](operation, protocolElems))
   def buildCompanion(clientName: String,

@@ -1,14 +1,14 @@
 package com.twilio.guardrail.protocol.terms.server
 
-import _root_.io.swagger.models.{ Operation, Path }
 import cats.InjectK
 import cats.free.Free
 import com.twilio.guardrail.generators.GeneratorSettings
-import com.twilio.guardrail.{ RenderedRoutes, ServerRoute, StrictProtocolElems, TracingField }
+import com.twilio.guardrail.{RenderedRoutes, ServerRoute, StrictProtocolElems, TracingField}
 import com.twilio.guardrail.languages.LA
+import io.swagger.v3.oas.models.{Operation, PathItem}
 
 class ServerTerms[L <: LA, F[_]](implicit I: InjectK[ServerTerm[L, ?], F]) {
-  def extractOperations(paths: List[(String, Path)]): Free[F, List[ServerRoute]] =
+  def extractOperations(paths: List[(String, PathItem)]): Free[F, List[ServerRoute]] =
     Free.inject[ServerTerm[L, ?], F](ExtractOperations(paths))
   def getClassName(operation: Operation): Free[F, List[String]] =
     Free.inject[ServerTerm[L, ?], F](GetClassName(operation))

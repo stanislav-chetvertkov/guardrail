@@ -23,6 +23,9 @@ case class RenderedClientOperation[L <: LA](
     supportDefinitions: List[L#Definition]
 )
 
+import io.swagger.v3.oas.models._
+
+
 object ClientGenerator {
   def fromSwagger[L <: LA, F[_]](context: Context, frameworkImports: List[L#Import])(
       schemes: List[String],
@@ -47,18 +50,18 @@ object ClientGenerator {
             ctorArgs  <- clientClsArgs(tracingName, schemes, host, context.tracing)
             companion <- buildCompanion(clientName, tracingName, schemes, host, ctorArgs, context.tracing)
             client <- buildClient(
-              clientName,
-              tracingName,
-              schemes,
-              host,
-              basePath,
-              ctorArgs,
-              clientOperations.map(_.clientOperation),
-              clientOperations.flatMap(_.supportDefinitions),
-              context.tracing
+              clientName = clientName,
+              tracingName = tracingName,
+              schemes = schemes,
+              host = host,
+              basePath = basePath,
+              ctorArgs = ctorArgs,
+              clientCalls = clientOperations.map(_.clientOperation),
+              supportDefinitions = clientOperations.flatMap(_.supportDefinitions),
+              tracing = context.tracing
             )
           } yield {
-            Client[L](pkg, clientName, (clientImports ++ frameworkImports ++ clientExtraImports), companion, client, responseDefinitions)
+            Client[L](pkg, clientName, clientImports ++ frameworkImports ++ clientExtraImports, companion, client, responseDefinitions)
           }
       })
     } yield Clients[L](clients)

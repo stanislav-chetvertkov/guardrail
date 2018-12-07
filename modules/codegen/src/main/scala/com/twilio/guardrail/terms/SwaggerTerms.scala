@@ -1,14 +1,15 @@
 package com.twilio.guardrail
 package terms
 
-import _root_.io.swagger.models.{ ModelImpl, Operation, Path }
 import cats.InjectK
 import cats.free.Free
 import com.twilio.guardrail.languages.LA
+import io.swagger.v3.oas.models.{Operation, PathItem}
 
 class SwaggerTerms[L <: LA, F[_]](implicit I: InjectK[SwaggerTerm[L, ?], F]) {
-  def extractOperations(paths: List[(String, Path)]): Free[F, List[RouteMeta]] =
+  def extractOperations(paths: List[(String, PathItem)]): Free[F, List[RouteMeta]] =
     Free.inject[SwaggerTerm[L, ?], F](ExtractOperations(paths))
+
   def getClassName(operation: Operation): Free[F, List[String]] =
     Free.inject[SwaggerTerm[L, ?], F](GetClassName(operation))
 }

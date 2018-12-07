@@ -117,7 +117,7 @@ val codegenSettings = Seq(
   addCompilerPlugin("org.spire-math" % "kind-projector"  % "0.9.8" cross CrossVersion.binary),
   libraryDependencies ++= testDependencies ++ Seq(
     "org.scalameta" %% "scalameta"     % "4.1.0",
-    "io.swagger"    % "swagger-parser" % "1.0.39",
+    "io.swagger.parser.v3" % "swagger-parser" % "2.0.1",
     "org.tpolecat"  %% "atto-core"     % "0.6.3",
     "org.typelevel" %% "cats-core"     % catsVersion,
     "org.typelevel" %% "cats-kernel"   % catsVersion,

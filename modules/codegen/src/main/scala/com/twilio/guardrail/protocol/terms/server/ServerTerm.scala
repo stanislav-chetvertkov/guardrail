@@ -1,12 +1,12 @@
 package com.twilio.guardrail.protocol.terms.server
 
-import _root_.io.swagger.models.{ Operation, Path }
 import com.twilio.guardrail.generators.GeneratorSettings
-import com.twilio.guardrail.{ RenderedRoutes, ServerRoute, StrictProtocolElems, TracingField }
+import com.twilio.guardrail.{RenderedRoutes, ServerRoute, StrictProtocolElems, TracingField}
 import com.twilio.guardrail.languages.LA
+import io.swagger.v3.oas.models.{Operation, PathItem}
 
 sealed trait ServerTerm[L <: LA, T]
-case class ExtractOperations[L <: LA](paths: List[(String, Path)]) extends ServerTerm[L, List[ServerRoute]]
+case class ExtractOperations[L <: LA](paths: List[(String, PathItem)]) extends ServerTerm[L, List[ServerRoute]]
 
 case class GetClassName[L <: LA](operation: Operation)                                                     extends ServerTerm[L, List[String]]
 case class BuildTracingFields[L <: LA](operation: Operation, resourceName: List[String], tracing: Boolean) extends ServerTerm[L, Option[TracingField[L]]]

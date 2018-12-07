@@ -1,14 +1,16 @@
 package com.twilio.guardrail
 
-import _root_.io.swagger.models._
 import cats.Id
 import cats.data.NonEmptyList
 import cats.free.Free
 import cats.instances.all._
 import cats.syntax.all._
 import com.twilio.guardrail.generators.ScalaParameter
-import com.twilio.guardrail.languages.{ LA, ScalaLanguage }
-import com.twilio.guardrail.protocol.terms.server.{ ServerTerm, ServerTerms }
+import com.twilio.guardrail.languages.{LA, ScalaLanguage}
+import com.twilio.guardrail.protocol.terms.server.{ServerTerm, ServerTerms}
+import io.swagger.v3.oas.models.PathItem.HttpMethod
+import io.swagger.v3.oas.models.{OpenAPI, Operation, PathItem}
+
 import scala.collection.JavaConverters._
 
 case class Servers[L <: LA](servers: List[Server[L]])
@@ -28,14 +30,14 @@ object ServerGenerator {
   def formatClassName(str: String): String   = s"${str.capitalize}Resource"
   def formatHandlerName(str: String): String = s"${str.capitalize}Handler"
 
-  def fromSwagger[L <: LA, F[_]](context: Context, swagger: Swagger, frameworkImports: List[L#Import])(
+  def fromSwagger[L <: LA, F[_]](context: Context, swagger: OpenAPI, frameworkImports: List[L#Import])(
       protocolElems: List[StrictProtocolElems[L]]
   )(implicit S: ServerTerms[L, F]): Free[F, Servers[L]] = {
     import S._
 
-    val paths: List[(String, Path)] =
-      Option(swagger.getPaths).map(_.asScala.toList).getOrElse(List.empty)
-    val basePath: Option[String] = Option(swagger.getBasePath)
+    val paths: List[(String, PathItem)] = Option(swagger.getPaths).map(_.asScala.toList).getOrElse(List.empty)
+
+    val basePath: Option[String] = swagger.getServers.asScala.headOption.map(_.getUrl) //fixme shouldn't be limited to the first path
 
     for {
       routes <- extractOperations(paths)

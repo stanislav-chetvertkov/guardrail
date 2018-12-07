@@ -1,7 +1,6 @@
 package com.twilio.guardrail
 
-import _root_.io.swagger.models._
-import _root_.io.swagger.models.properties.Property
+
 import cats.data.EitherK
 import cats.free.Free
 import cats.implicits._
@@ -19,6 +18,10 @@ import scala.language.higherKinds
 import scala.language.postfixOps
 import scala.language.reflectiveCalls
 import scala.meta._
+import _root_.io.swagger.v3.oas.models.OpenAPI
+import _root_.io.swagger.v3.oas.models.media.StringSchema
+import _root_.io.swagger.v3.oas.models.media._
+
 
 case class ProtocolDefinitions[L <: LA](elems: List[StrictProtocolElems[L]],
                                         protocolImports: List[L#Import],
@@ -40,8 +43,10 @@ case class SuperClass[L <: LA](
 )
 
 object ProtocolGenerator {
-  private[this] def fromEnum[F[_]](clsName: String, swagger: ModelImpl)(implicit E: EnumProtocolTerms[ScalaLanguage, F],
-                                                                        F: FrameworkTerms[ScalaLanguage, F]): Free[F, Either[String, ProtocolElems[ScalaLanguage]]] = {
+  private[this] def fromEnum[F[_]](
+      clsName: String,
+      swagger: StringSchema
+  )(implicit E: EnumProtocolTerms[ScalaLanguage, F], F: FrameworkTerms[ScalaLanguage, F]): Free[F, Either[String, ProtocolElems[ScalaLanguage]]] = {
     import E._
     import F._
 
@@ -51,10 +56,9 @@ object ProtocolGenerator {
       "^([a-z])".r // initial letter
     )
 
-    def toPascalCase(s: String): String =
-      toPascalRegexes.foldLeft(s)(
+    def toPascalCase(s: String): String = toPascalRegexes.foldLeft(s)(
         (accum, regex) => regex.replaceAllIn(accum, m => m.group(1).toUpperCase(Locale.US))
-      )
+    )
 
     def validProg(enum: List[String], tpe: Type): Free[F, EnumDefinition[ScalaLanguage]] = {
       val elems = enum.map { elem =>
@@ -110,8 +114,10 @@ object ProtocolGenerator {
   private[this] def fromPoly[F[_]](
       hierarchy: ClassParent,
       concreteTypes: List[PropMeta],
-      definitions: List[(String, Model)]
-  )(implicit F: FrameworkTerms[ScalaLanguage, F], P: PolyProtocolTerms[ScalaLanguage, F], M: ModelProtocolTerms[ScalaLanguage, F]): Free[F, ProtocolElems[ScalaLanguage]] = {
+      definitions: List[(String, Schema[_])]
+  )(implicit F: FrameworkTerms[ScalaLanguage, F],
+    P: PolyProtocolTerms[ScalaLanguage, F],
+    M: ModelProtocolTerms[ScalaLanguage, F]): Free[F, ProtocolElems[ScalaLanguage]] = {
     import P._
     import M._
 
@@ -145,7 +151,7 @@ object ProtocolGenerator {
     }
   }
 
-  def extractParents[F[_]](elem: Model, definitions: List[(String, Model)], concreteTypes: List[PropMeta])(
+  def extractParents[F[_]](elem: Schema[_], definitions: List[(String, Schema[_])], concreteTypes: List[PropMeta])(
       implicit M: ModelProtocolTerms[ScalaLanguage, F],
       F: FrameworkTerms[ScalaLanguage, F],
       P: PolyProtocolTerms[ScalaLanguage, F]
@@ -161,8 +167,8 @@ object ProtocolGenerator {
           .flatMap(
             x =>
               definitions.collectFirst {
-                case (cls, y: ModelImpl) if x.getSimpleRef == cls     => y
-                case (cls, y: ComposedModel) if x.getSimpleRef == cls => y
+                case (cls, y: ObjectSchema) if x.getSimpleRef == cls     => y
+                case (cls, y: ComposedSchema) if x.getSimpleRef == cls => y
             }
           )
         for {
@@ -179,7 +185,7 @@ object ProtocolGenerator {
             interfacesCls,
             params,
             (_extends :: concreteInterfaces).collect {
-              case m: ModelImpl if Option(m.getDiscriminator).isDefined => m.getDiscriminator
+              case m: ObjectSchema if Option(m.getDiscriminator.getPropertyName).isDefined => m.getDiscriminator.getPropertyName
             }
           )
       }
@@ -187,7 +193,7 @@ object ProtocolGenerator {
     } yield supper
   }
 
-  private[this] def fromModel[F[_]](clsName: String, model: Model, parents: List[SuperClass[ScalaLanguage]], concreteTypes: List[PropMeta])(
+  private[this] def fromModel[F[_]](clsName: String, model: Schema[_], parents: List[SuperClass[ScalaLanguage]], concreteTypes: List[PropMeta])(
       implicit M: ModelProtocolTerms[ScalaLanguage, F],
       F: FrameworkTerms[ScalaLanguage, F]
   ): Free[F, Either[String, ProtocolElems[ScalaLanguage]]] = {
@@ -209,16 +215,16 @@ object ProtocolGenerator {
       else Right(ClassDefinition[ScalaLanguage](clsName, Type.Name(clsName), defn, cmp, parents))
   }
 
-  def modelTypeAlias[F[_]](clsName: String, abstractModel: Model)(
+  def modelTypeAlias[F[_]](clsName: String, abstractModel: Schema[_])(
       implicit A: AliasProtocolTerms[ScalaLanguage, F],
       F: FrameworkTerms[ScalaLanguage, F]
   ): Free[F, ProtocolElems[ScalaLanguage]] = {
     import F._
     val model = abstractModel match {
-      case m: ModelImpl => Some(m)
-      case m: ComposedModel =>
+      case m: ObjectSchema => Some(m)
+      case m: ComposedSchema =>
         m.getAllOf.asScala.toList.get(1).flatMap {
-          case m: ModelImpl => Some(m)
+          case m: ObjectSchema => Some(m)
           case _            => None
         }
       case _ => None
@@ -233,7 +239,8 @@ object ProtocolGenerator {
     }
   }
 
-  def plainTypeAlias[F[_]](clsName: String)(implicit A: AliasProtocolTerms[ScalaLanguage, F], F: FrameworkTerms[ScalaLanguage, F]): Free[F, ProtocolElems[ScalaLanguage]] = {
+  def plainTypeAlias[F[_]](clsName: String)(implicit A: AliasProtocolTerms[ScalaLanguage, F],
+                                            F: FrameworkTerms[ScalaLanguage, F]): Free[F, ProtocolElems[ScalaLanguage]] = {
     import F._
     getGeneratorSettings().flatMap { implicit generatorSettings =>
       typeAlias(clsName, generatorSettings.jsonType)
@@ -245,8 +252,10 @@ object ProtocolGenerator {
     Free.pure(RandomType[ScalaLanguage](clsName, tpe))
   }
 
-  def fromArray[F[_]](clsName: String, arr: ArrayModel, concreteTypes: List[PropMeta])(implicit R: ArrayProtocolTerms[ScalaLanguage, F],
-                                                                                                A: AliasProtocolTerms[ScalaLanguage, F]): Free[F, ProtocolElems[ScalaLanguage]] = {
+  def fromArray[F[_]](clsName: String, arr: ArrayModel, concreteTypes: List[PropMeta])(
+      implicit R: ArrayProtocolTerms[ScalaLanguage, F],
+      A: AliasProtocolTerms[ScalaLanguage, F]
+  ): Free[F, ProtocolElems[ScalaLanguage]] = {
     import R._
     for {
       tpe <- extractArrayType(arr, concreteTypes)
@@ -256,39 +265,39 @@ object ProtocolGenerator {
 
   sealed trait ClassHierarchy {
     def name: String
-    def model: Model
+    def model: Schema[_]
     def children: List[ClassChild]
   }
-  case class ClassChild(name: String, model: Model, children: List[ClassChild])                         extends ClassHierarchy
-  case class ClassParent(name: String, model: Model, children: List[ClassChild], discriminator: String) extends ClassHierarchy
+  case class ClassChild(name: String, model: Schema[_], children: List[ClassChild])                         extends ClassHierarchy
+  case class ClassParent(name: String, model: Schema[_], children: List[ClassChild], discriminator: String) extends ClassHierarchy
 
   /**
     * returns objects grouped into hierarchies
     */
-  def groupHierarchies(definitions: List[(String, Model)]): List[ClassParent] = {
+  def groupHierarchies(definitions: List[(String, Schema[_])]): List[ClassParent] = {
 
-    def firstInHierarchy(model: Model): Option[ModelImpl] =
+    def firstInHierarchy(model: Schema[_]): Option[ObjectSchema] =
       (model match {
-        case elem: ComposedModel =>
+        case elem: ComposedSchema =>
           definitions.collectFirst {
-            case (clsName, element) if elem.getInterfaces.asScala.headOption.exists(_.getSimpleRef == clsName) => element
+            case (clsName, element) if elem.getAllOf.asScala.headOption.exists(_.get$ref() == clsName) => element
           }
         case _ => None
       }) match {
-        case Some(x: ComposedModel) => firstInHierarchy(x)
-        case Some(x: ModelImpl)     => Some(x)
+        case Some(x: ComposedSchema) => firstInHierarchy(x)
+        case Some(x: ObjectSchema)     => Some(x)
         case _                      => None
       }
 
-    def children(cls: String, model: Model): List[ClassChild] = definitions.collect {
-      case (clsName, comp: ComposedModel) if comp.getInterfaces.asScala.exists(_.getSimpleRef == cls) =>
+    def children(cls: String, model: Schema[_]): List[ClassChild] = definitions.collect {
+      case (clsName, comp: ComposedSchema) if comp.getAllOf.asScala.exists(_.get$ref() == cls) => //fixme should call contains?
         ClassChild(clsName, comp, children(clsName, comp))
     }
 
-    def classHierarchy(cls: String, model: Model): Option[ClassParent] =
+    def classHierarchy(cls: String, model: Schema[_]): Option[ClassParent] =
       (model match {
-        case m: ModelImpl     => Option(m.getDiscriminator)
-        case c: ComposedModel => firstInHierarchy(c).map(_.getDiscriminator)
+        case m: ObjectSchema     => Option(m.getDiscriminator)
+        case c: ComposedSchema => firstInHierarchy(c).map(_.getDiscriminator)
         case _                => None
       }).map(
         ClassParent(
@@ -305,7 +314,7 @@ object ProtocolGenerator {
 
   }
 
-  def fromSwagger[F[_]](swagger: Swagger)(
+  def fromSwagger[F[_]](swagger: OpenAPI)(
       implicit E: EnumProtocolTerms[ScalaLanguage, F],
       M: ModelProtocolTerms[ScalaLanguage, F],
       A: AliasProtocolTerms[ScalaLanguage, F],
@@ -318,16 +327,18 @@ object ProtocolGenerator {
     import F._
     import P._
 
-    val definitions = Option(swagger.getDefinitions).toList.flatMap(_.asScala)
+    swagger.getComponents
+
+    val definitions = Option(swagger.getComponents).toList.flatMap(_.asScala)
     val hierarchies = groupHierarchies(definitions)
 
     val definitionsWithoutPoly: List[(String, Model)] = definitions.filter { // filter out polymorphic definitions
-      case (clsName, _: ComposedModel) if definitions.exists {
-            case (_, m: ComposedModel) => m.getInterfaces.asScala.headOption.exists(_.getSimpleRef == clsName)
+      case (clsName, _: ComposedSchema) if definitions.exists {
+            case (_, m: ComposedSchema) => m.getInterfaces.asScala.headOption.exists(_.getSimpleRef == clsName)
             case _                     => false
           } =>
         false
-      case (_, m: ModelImpl) if Option(m.getDiscriminator).isDefined => false
+      case (_, m: ObjectSchema) if Option(m.getDiscriminator.getPropertyName).isDefined => false
       case _                                                         => true
     }
 
@@ -337,7 +348,7 @@ object ProtocolGenerator {
       elems <- definitionsWithoutPoly.traverse {
         case (clsName, model) =>
           model match {
-            case m: ModelImpl =>
+            case m: ObjectSchema =>
               for {
                 enum    <- fromEnum(clsName, m)
                 parents <- extractParents(m, definitions, concreteTypes)
@@ -345,7 +356,7 @@ object ProtocolGenerator {
                 alias   <- modelTypeAlias(clsName, m)
               } yield enum.orElse(model).getOrElse(alias)
 
-            case comp: ComposedModel =>
+            case comp: ComposedSchema =>
               for {
                 parents <- extractParents(comp, definitions, concreteTypes)
                 model   <- fromModel(clsName, comp, parents, concreteTypes)

@@ -5,18 +5,22 @@ import cats.InjectK
 import cats.free.Free
 import com.twilio.guardrail.generators.GeneratorSettings
 import com.twilio.guardrail.languages.LA
+import io.swagger.v3.oas.models.media.StringSchema
 
 class EnumProtocolTerms[L <: LA, F[_]](implicit I: InjectK[EnumProtocolTerm[L, ?], F]) {
-  def extractEnum(swagger: ModelImpl): Free[F, Either[String, List[String]]] =
+  def extractEnum(swagger: StringSchema): Free[F, Either[String, List[String]]] =
     Free.inject[EnumProtocolTerm[L, ?], F](ExtractEnum[L](swagger))
-  def extractType(swagger: ModelImpl): Free[F, Either[String, L#Type]] =
+  def extractType(swagger: StringSchema): Free[F, Either[String, L#Type]] =
     Free.inject[EnumProtocolTerm[L, ?], F](ExtractType[L](swagger))
   def renderMembers(clsName: String, elems: List[(String, L#TermName, L#Term)]): Free[F, L#ObjectDefinition] =
     Free.inject[EnumProtocolTerm[L, ?], F](RenderMembers[L](clsName, elems))
+
   def encodeEnum(clsName: String): Free[F, L#ValueDefinition] =
     Free.inject[EnumProtocolTerm[L, ?], F](EncodeEnum[L](clsName))
+
   def decodeEnum(clsName: String): Free[F, L#ValueDefinition] =
     Free.inject[EnumProtocolTerm[L, ?], F](DecodeEnum[L](clsName))
+
   def renderClass(clsName: String, tpe: L#Type): Free[F, L#ClassDefinition] =
     Free.inject[EnumProtocolTerm[L, ?], F](RenderClass[L](clsName, tpe))
   def renderCompanion(clsName: String,
