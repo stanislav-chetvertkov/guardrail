@@ -1,13 +1,13 @@
 package com.twilio.guardrail.protocol.terms.protocol
 
-import _root_.io.swagger.models.ArrayModel
 import cats.InjectK
 import cats.free.Free
 import com.twilio.guardrail.generators.GeneratorSettings
 import com.twilio.guardrail.languages.LA
+import io.swagger.v3.oas.models.media.ArraySchema
 
 class ArrayProtocolTerms[L <: LA, F[_]](implicit I: InjectK[ArrayProtocolTerm[L, ?], F]) {
-  def extractArrayType(arr: ArrayModel, concreteTypes: List[PropMeta]): Free[F, L#Type] =
+  def extractArrayType(arr: ArraySchema, concreteTypes: List[PropMeta]): Free[F, L#Type] =
     Free.inject[ArrayProtocolTerm[L, ?], F](ExtractArrayType[L](arr, concreteTypes))
 }
 

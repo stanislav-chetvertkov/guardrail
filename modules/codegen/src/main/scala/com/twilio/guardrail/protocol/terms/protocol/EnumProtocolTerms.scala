@@ -5,13 +5,15 @@ import cats.InjectK
 import cats.free.Free
 import com.twilio.guardrail.generators.GeneratorSettings
 import com.twilio.guardrail.languages.LA
-import io.swagger.v3.oas.models.media.StringSchema
+import io.swagger.v3.oas.models.media.{Schema, StringSchema}
 
 class EnumProtocolTerms[L <: LA, F[_]](implicit I: InjectK[EnumProtocolTerm[L, ?], F]) {
-  def extractEnum(swagger: StringSchema): Free[F, Either[String, List[String]]] =
+  def extractEnum(swagger: Schema[_]): Free[F, Either[String, List[String]]] =
     Free.inject[EnumProtocolTerm[L, ?], F](ExtractEnum[L](swagger))
-  def extractType(swagger: StringSchema): Free[F, Either[String, L#Type]] =
+
+  def extractType(swagger: Schema[_]): Free[F, Either[String, L#Type]] =
     Free.inject[EnumProtocolTerm[L, ?], F](ExtractType[L](swagger))
+
   def renderMembers(clsName: String, elems: List[(String, L#TermName, L#Term)]): Free[F, L#ObjectDefinition] =
     Free.inject[EnumProtocolTerm[L, ?], F](RenderMembers[L](clsName, elems))
 

@@ -3,6 +3,7 @@ package com.twilio.guardrail.extract
 import io.swagger.models._
 import io.swagger.models.parameters._
 import io.swagger.models.properties._
+import io.swagger.v3.oas.models.media.{IntegerSchema, NumberSchema, Schema}
 
 object VendorExtension {
   trait VendorExtensible[F] {
@@ -10,11 +11,13 @@ object VendorExtension {
   }
 
   object VendorExtensible {
+
     def build[F](f: F => String => Any): VendorExtensible[F] =
       new VendorExtensible[F] {
         def extract[T](from: F, key: String)(implicit T: Extractable[T]): Option[T] =
           T.extract(f(from)(key)).toOption
       }
+
 
     implicit val defaultVendorExtensibleModel: VendorExtensible[Model] =
       build[Model](m => key => m.getVendorExtensions.get(key))
@@ -31,30 +34,36 @@ object VendorExtension {
     implicit val defaultVendorExtensibleSwagger: VendorExtensible[Swagger] =
       build[Swagger](m => key => m.getVendorExtensions.get(key))
 
+    implicit val defaultVendorExtensibleSchemaProperty: VendorExtensible[Schema[_]] =
+      build[Schema[_]](m => key => m.getExtensions.get(key))
+
     implicit val defaultVendorExtensibleAbstractProperty: VendorExtensible[AbstractProperty] =
       build[AbstractProperty](m => key => m.getVendorExtensions.get(key))
     implicit val defaultVendorExtensibleArrayProperty: VendorExtensible[ArrayProperty] =
       build[ArrayProperty](m => key => m.getVendorExtensions.get(key))
     implicit val defaultVendorExtensibleBaseIntegerProperty: VendorExtensible[BaseIntegerProperty] =
       build[BaseIntegerProperty](m => key => m.getVendorExtensions.get(key))
+
     implicit val defaultVendorExtensibleBooleanProperty: VendorExtensible[BooleanProperty] =
       build[BooleanProperty](m => key => m.getVendorExtensions.get(key))
+
     implicit val defaultVendorExtensibleDateProperty: VendorExtensible[DateProperty] =
       build[DateProperty](m => key => m.getVendorExtensions.get(key))
     implicit val defaultVendorExtensibleDateTimeProperty: VendorExtensible[DateTimeProperty] =
       build[DateTimeProperty](m => key => m.getVendorExtensions.get(key))
-    implicit val defaultVendorExtensibleDecimalProperty: VendorExtensible[DecimalProperty] =
-      build[DecimalProperty](m => key => m.getVendorExtensions.get(key))
-    implicit val defaultVendorExtensibleDoubleProperty: VendorExtensible[DoubleProperty] =
-      build[DoubleProperty](m => key => m.getVendorExtensions.get(key))
-    implicit val defaultVendorExtensibleFloatProperty: VendorExtensible[FloatProperty] =
-      build[FloatProperty](m => key => m.getVendorExtensions.get(key))
-    implicit val defaultVendorExtensibleIntegerProperty: VendorExtensible[IntegerProperty] =
-      build[IntegerProperty](m => key => m.getVendorExtensions.get(key))
+
+    implicit val defaultVendorExtensibleFloatProperty: VendorExtensible[NumberSchema] =
+      build[NumberSchema](m => key => m.getExtensions.get(key))
+
+    implicit val defaultVendorExtensibleIntegerProperty: VendorExtensible[IntegerSchema] =
+      build[IntegerSchema](m => key => m.getExtensions.get(key))
+
     implicit val defaultVendorExtensibleLongProperty: VendorExtensible[LongProperty] =
       build[LongProperty](m => key => m.getVendorExtensions.get(key))
+
     implicit val defaultVendorExtensibleMapProperty: VendorExtensible[MapProperty] =
       build[MapProperty](m => key => m.getVendorExtensions.get(key))
+
     implicit val defaultVendorExtensibleModelImpl: VendorExtensible[ModelImpl] =
       build[ModelImpl](m => key => m.getVendorExtensions.get(key))
     implicit val defaultVendorExtensibleObjectProperty: VendorExtensible[ObjectProperty] =

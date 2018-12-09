@@ -3,12 +3,16 @@ package com.twilio.guardrail
 import _root_.io.swagger.models._
 import _root_.io.swagger.models.parameters._
 import _root_.io.swagger.models.properties._
+
+import _root_.io.swagger.v3.oas.models.media._
+
 import cats.syntax.either._
-import cats.{ FlatMap, Foldable }
+import cats.{FlatMap, Foldable}
 import cats.instances.list._
-import com.twilio.guardrail.extract.{ Default, ScalaType }
-import com.twilio.guardrail.generators.{ GeneratorSettings, ScalaParameter }
-import java.util.{ Map => JMap }
+import com.twilio.guardrail.extract.{Default, ScalaType}
+import com.twilio.guardrail.generators.{GeneratorSettings, ScalaParameter}
+import java.util.{Map => JMap}
+
 import scala.language.reflectiveCalls
 import scala.meta._
 import com.twilio.guardrail.languages.ScalaLanguage
@@ -220,7 +224,8 @@ object SwaggerUtil {
   }
 
   // Standard type conversions, as documented in http://swagger.io/specification/#data-types-12
-  def typeName(typeName: String, format: Option[String], customType: Option[String])(implicit gs: GeneratorSettings): Type = {
+  def typeName(typeName: String, format: Option[String], customType: Option[String])
+              (implicit gs: GeneratorSettings): Type = {
     def log(fmt: Option[String], t: Type): Type = {
       fmt.foreach { fmt =>
         println(s"Warning: Deprecated behavior: Unsupported type '$fmt', falling back to $t. Please switch definitions to x-scala-type for custom types")
@@ -268,10 +273,10 @@ object SwaggerUtil {
   def propMeta[T <: Property](property: T): Target[ResolvedType] =
     Target.getGeneratorSettings.flatMap { implicit gs =>
       property match {
-        case p: ArrayProperty =>
-          val title = Option(p.getTitle()).getOrElse("Unnamed array")
+        case p: ArraySchema =>
+          val title = Option(p.getTitle).getOrElse("Unnamed array")
           for {
-            items <- Target.fromOption(Option(p.getItems()), s"${title} has no items")
+            items <- Target.fromOption(Option(p.getItems), s"$title has no items")
             rec   <- propMeta(items)
             res <- rec match {
               case DeferredMap(_) =>
@@ -280,7 +285,7 @@ object SwaggerUtil {
                 Target.error("FIXME: Got an Array of Arrays, currently not supported")
               case Deferred(inner) => Target.pure(DeferredArray(inner))
               case Resolved(inner, dep, default) =>
-                Target.pure(Resolved(t"IndexedSeq[${inner}]", dep, default.map(x => q"IndexedSeq(${x})")))
+                Target.pure(Resolved(t"IndexedSeq[$inner]", dep, default.map(x => q"IndexedSeq($x)")))
             }
           } yield res
         case m: MapProperty =>
@@ -300,12 +305,12 @@ object SwaggerUtil {
           Target.pure(Resolved(gs.jsonType, None, None)) // TODO: o.getProperties
         case r: RefProperty =>
           Target
-            .fromOption(Option(r.getSimpleRef()), "Malformed $ref")
+            .fromOption(Option(r.getSimpleRef), "Malformed $ref")
             .map(Deferred.apply _)
         case b: BooleanProperty =>
           Target.pure(Resolved(typeName("boolean", None, ScalaType(b)), None, Default(b).extract[Boolean].map(Lit.Boolean(_))))
         case s: StringProperty =>
-          Target.pure(Resolved(typeName("string", Option(s.getFormat()), ScalaType(s)), None, Default(s).extract[String].map(Lit.String(_))))
+          Target.pure(Resolved(typeName("string", Option(s.getFormat), ScalaType(s)), None, Default(s).extract[String].map(Lit.String(_))))
 
         case d: DateProperty =>
           Target.pure(Resolved(typeName("string", Some("date"), ScalaType(d)), None, None))
@@ -314,8 +319,11 @@ object SwaggerUtil {
 
         case l: LongProperty =>
           Target.pure(Resolved(typeName("integer", Some("int64"), ScalaType(l)), None, Default(l).extract[Long].map(Lit.Long(_))))
-        case i: IntegerProperty =>
+
+        case i: IntegerSchema =>
+
           Target.pure(Resolved(typeName("integer", Some("int32"), ScalaType(i)), None, Default(i).extract[Int].map(Lit.Int(_))))
+
         case f: FloatProperty =>
           Target.pure(Resolved(typeName("number", Some("float"), ScalaType(f)), None, Default(f).extract[Float].map(Lit.Float(_))))
         case d: DoubleProperty =>

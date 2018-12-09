@@ -1,13 +1,13 @@
 package com.twilio.guardrail.protocol.terms.protocol
 
-import _root_.io.swagger.models.Model
 import cats.InjectK
 import cats.free.Free
 import com.twilio.guardrail.languages.LA
-import com.twilio.guardrail.{ ProtocolElems, StrictProtocolElems }
+import com.twilio.guardrail.{ProtocolElems, StrictProtocolElems}
+import io.swagger.v3.oas.models.media.Schema
 
 class ProtocolSupportTerms[L <: LA, F[_]](implicit I: InjectK[ProtocolSupportTerm[L, ?], F]) {
-  def extractConcreteTypes(models: List[(String, Model)]): Free[F, List[PropMeta]] =
+  def extractConcreteTypes(models: List[(String, Schema[_])]): Free[F, List[PropMeta]] =
     Free.inject[ProtocolSupportTerm[L, ?], F](ExtractConcreteTypes(models))
   def protocolImports(): Free[F, List[L#Import]] =
     Free.inject[ProtocolSupportTerm[L, ?], F](ProtocolImports())

@@ -45,7 +45,7 @@ case class SuperClass[L <: LA](
 object ProtocolGenerator {
   private[this] def fromEnum[F[_]](
       clsName: String,
-      swagger: StringSchema
+      swagger: Schema[_]
   )(implicit E: EnumProtocolTerms[ScalaLanguage, F], F: FrameworkTerms[ScalaLanguage, F]): Free[F, Either[String, ProtocolElems[ScalaLanguage]]] = {
     import E._
     import F._
@@ -167,8 +167,8 @@ object ProtocolGenerator {
           .flatMap(
             x =>
               definitions.collectFirst {
-                case (cls, y: ObjectSchema) if x.getSimpleRef == cls     => y
-                case (cls, y: ComposedSchema) if x.getSimpleRef == cls => y
+                case (cls, y: ObjectSchema) if x == cls     => y
+                case (cls, y: ComposedSchema) if x == cls => y
             }
           )
         for {
@@ -177,7 +177,7 @@ object ProtocolGenerator {
           props                    = _extendsProps ++ _withProps.flatten
           needCamelSnakeConversion = props.forall { case (k, _) => couldBeSnakeCase(k) }
           params <- props.traverse(transformProperty(clsName, needCamelSnakeConversion, concreteTypes) _ tupled)
-          interfacesCls = interfaces.map(_.getSimpleRef)
+          interfacesCls = interfaces
         } yield
           SuperClass[ScalaLanguage](
             clsName,
@@ -252,7 +252,7 @@ object ProtocolGenerator {
     Free.pure(RandomType[ScalaLanguage](clsName, tpe))
   }
 
-  def fromArray[F[_]](clsName: String, arr: ArrayModel, concreteTypes: List[PropMeta])(
+  def fromArray[F[_]](clsName: String, arr: ArraySchema, concreteTypes: List[PropMeta])(
       implicit R: ArrayProtocolTerms[ScalaLanguage, F],
       A: AliasProtocolTerms[ScalaLanguage, F]
   ): Free[F, ProtocolElems[ScalaLanguage]] = {
@@ -296,8 +296,8 @@ object ProtocolGenerator {
 
     def classHierarchy(cls: String, model: Schema[_]): Option[ClassParent] =
       (model match {
-        case m: ObjectSchema     => Option(m.getDiscriminator)
-        case c: ComposedSchema => firstInHierarchy(c).map(_.getDiscriminator)
+        case m: ObjectSchema     => Option(m.getDiscriminator.getPropertyName)
+        case c: ComposedSchema => firstInHierarchy(c).map(_.getDiscriminator.getPropertyName)
         case _                => None
       }).map(
         ClassParent(
@@ -329,12 +329,12 @@ object ProtocolGenerator {
 
     swagger.getComponents
 
-    val definitions = Option(swagger.getComponents).toList.flatMap(_.asScala)
+    val definitions = Option(swagger.getComponents.getSchemas).toList.flatMap(_.asScala)
     val hierarchies = groupHierarchies(definitions)
 
-    val definitionsWithoutPoly: List[(String, Model)] = definitions.filter { // filter out polymorphic definitions
+    val definitionsWithoutPoly: List[(String, Schema[_])] = definitions.filter { // filter out polymorphic definitions
       case (clsName, _: ComposedSchema) if definitions.exists {
-            case (_, m: ComposedSchema) => m.getInterfaces.asScala.headOption.exists(_.getSimpleRef == clsName)
+            case (_, m: ComposedSchema) => m.getAllOf.asScala.headOption.exists(_.get$ref() == clsName) //fixme contains?
             case _                     => false
           } =>
         false
@@ -363,7 +363,7 @@ object ProtocolGenerator {
                 alias   <- modelTypeAlias(clsName, comp)
               } yield model.getOrElse(alias)
 
-            case arr: ArrayModel =>
+            case arr: ArraySchema =>
               fromArray(clsName, arr, concreteTypes)
             case x =>
               println(s"Warning: ${x} being treated as Json")
