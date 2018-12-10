@@ -3,7 +3,6 @@ package generators
 
 import java.util.Locale
 
-import _root_.io.swagger.models._
 import cats.arrow.FunctionK
 import cats.data.NonEmptyList
 import cats.syntax.flatMap._
@@ -13,6 +12,7 @@ import com.twilio.guardrail.languages.ScalaLanguage
 
 import scala.collection.JavaConverters._
 import scala.meta._
+import _root_.io.swagger.v3.oas.models.PathItem.HttpMethod
 
 object AkkaHttpClientGenerator {
 
@@ -249,7 +249,7 @@ object AkkaHttpClientGenerator {
             // Placeholder for when more functions get logging
             _ <- Target.pure(())
 
-            consumes = Option(operation.getConsumes)
+            consumes = Option(operation.getRequestBody.getContent.keySet())
               .fold(List.empty[String])(_.asScala.toList)
             textPlain              = consumes.contains("text/plain")
             formDataNeedsMultipart = consumes.contains("multipart/form-data")

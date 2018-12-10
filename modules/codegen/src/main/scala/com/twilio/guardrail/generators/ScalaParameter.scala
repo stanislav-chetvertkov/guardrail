@@ -1,8 +1,8 @@
 package com.twilio.guardrail
 package generators
 
-import _root_.io.swagger.models.parameters.Parameter
-import com.twilio.guardrail.extract.{ Default, ScalaFileHashAlgorithm, ScalaType }
+import _root_.io.swagger.v3.oas.models.parameters.Parameter
+import com.twilio.guardrail.extract.{Default, ScalaFileHashAlgorithm, ScalaType}
 import com.twilio.guardrail.languages.ScalaLanguage
 import java.util.Locale
 
@@ -52,7 +52,7 @@ object ScalaParameter {
       new ScalaParameter(None, param, Term.Name(name.value), argName, tpe, required, None, innerTpe == gs.fileType)
   }
 
-  def fromParameter(protocolElems: List[StrictProtocolElems[ScalaLanguage]]): Parameter => Target[ScalaParameter] = { parameter =>
+  def fromParameter(protocolElems: List[StrictProtocolElems[ScalaLanguage]]): Parameter => Target[ScalaParameter] = { parameter: Parameter =>
     def toCamelCase(s: String): String = {
       val fromSnakeOrDashed =
         "[_-]([a-z])".r.replaceAllIn(s, m => m.group(1).toUpperCase(Locale.US))
@@ -61,11 +61,9 @@ object ScalaParameter {
     }
 
     def paramMeta[T <: Parameter](param: T): Target[SwaggerUtil.ResolvedType] = {
-      import _root_.io.swagger.models.parameters._
-      def getDefault[U <: AbstractSerializableParameter[U]: Default.GetDefault](p: U): Option[Term] = (
-        Option(p.getType)
+      def getDefault[U <: Parameter: Default.GetDefault](p: U): Option[Term] = Option(p.getSchema.getType)
           .flatMap { _type =>
-            val fmt = Option(p.getFormat)
+            val fmt = Option(p.getSchema.getFormat)
             (_type, fmt) match {
               case ("string", None) =>
                 Default(p).extract[String].map(Lit.String(_))
@@ -82,55 +80,43 @@ object ScalaParameter {
               case x => None
             }
           }
-      )
 
       Target.getGeneratorSettings.flatMap { implicit gs =>
         param match {
-          case x: BodyParameter =>
+          case x: Parameter if x.getIn == "body" =>
             for {
-              schema <- Target.fromOption(Option(x.getSchema()), "Schema not specified")
+              schema <- Target.fromOption(Option(x.getSchema), "Schema not specified")
               rtpe   <- SwaggerUtil.modelMetaType(schema)
             } yield rtpe
-          case x: HeaderParameter =>
+
+          case x: Parameter if x.getIn == "path" =>
             for {
-              tpeName <- Target.fromOption(Option(x.getType()), s"Missing type")
+              tpeName <- Target.fromOption(Option(x.getSchema.getType()), s"Missing type")
             } yield
               SwaggerUtil
-                .Resolved(SwaggerUtil.typeName(tpeName, Option(x.getFormat()), ScalaType(x)), None, getDefault(x))
-          case x: PathParameter =>
+                .Resolved(SwaggerUtil.typeName(tpeName, Option(x.getSchema.getFormat()), ScalaType(x)), None, getDefault(x))
+          case x: Parameter if x.getIn == "cookie" =>
             for {
-              tpeName <- Target.fromOption(Option(x.getType()), s"Missing type")
+              tpeName <- Target.fromOption(Option(x.getSchema.getType()), s"Missing type")
             } yield
               SwaggerUtil
-                .Resolved(SwaggerUtil.typeName(tpeName, Option(x.getFormat()), ScalaType(x)), None, getDefault(x))
-          case x: QueryParameter =>
+                .Resolved(SwaggerUtil.typeName(tpeName, Option(x.getSchema.getFormat()), ScalaType(x)), None, getDefault(x))
+          case x: Parameter if x.getIn == "form" =>
             for {
-              tpeName <- Target.fromOption(Option(x.getType()), s"Missing type")
+              tpeName <- Target.fromOption(Option(x.getSchema.getType), s"Missing type")
             } yield
               SwaggerUtil
-                .Resolved(SwaggerUtil.typeName(tpeName, Option(x.getFormat()), ScalaType(x)), None, getDefault(x))
-          case x: CookieParameter =>
+                .Resolved(SwaggerUtil.typeName(tpeName, Option(x.getSchema.getFormat), ScalaType(x)), None, getDefault(x))
+          case r: Parameter if Option(r.get$ref()).isDefined =>
             for {
-              tpeName <- Target.fromOption(Option(x.getType()), s"Missing type")
-            } yield
-              SwaggerUtil
-                .Resolved(SwaggerUtil.typeName(tpeName, Option(x.getFormat()), ScalaType(x)), None, getDefault(x))
-          case x: FormParameter =>
-            for {
-              tpeName <- Target.fromOption(Option(x.getType()), s"Missing type")
-            } yield
-              SwaggerUtil
-                .Resolved(SwaggerUtil.typeName(tpeName, Option(x.getFormat()), ScalaType(x)), None, getDefault(x))
-          case r: RefParameter =>
-            for {
-              tpeName <- Target.fromOption(Option(r.getSimpleRef()), "$ref not defined")
+              tpeName <- Target.fromOption(Option(r.get$ref()), "$ref not defined") //fixme use simple ref
             } yield SwaggerUtil.Deferred(tpeName)
-          case x: SerializableParameter =>
-            for {
-              tpeName <- Target.fromOption(Option(x.getType()), s"Missing type")
-            } yield SwaggerUtil.Resolved(SwaggerUtil.typeName(tpeName, Option(x.getFormat()), ScalaType(x)), None, None)
+//          case x: SerializableParameter =>
+//            for {
+//              tpeName <- Target.fromOption(Option(x.getType()), s"Missing type")
+//            } yield SwaggerUtil.Resolved(SwaggerUtil.typeName(tpeName, Option(x.getFormat()), ScalaType(x)), None, None)
           case x =>
-            Target.error(s"Unsure how to handle ${x}")
+            Target.error(s"Unsure how to handle $x")
         }
       }
     }
@@ -151,9 +137,9 @@ object ScalaParameter {
         enumDefaultValue <- (paramType match {
           case tpe @ Type.Name(tpeName) =>
             protocolElems
-              .collect({
+              .collect{
                 case x @ EnumDefinition(_, Type.Name(`tpeName`), _, _, _) => x
-              })
+              }
               .headOption
               .fold(baseDefaultValue.map(Target.pure _)) {
                 case EnumDefinition(_, _, elems, _, _) => // FIXME: Is there a better way to do this? There's a gap of coverage here
@@ -220,6 +206,6 @@ object ScalaParameter {
     * @return
     */
   def filterParams(params: List[ScalaParameter]): String => List[ScalaParameter] = { in =>
-    params.filter(_.in == Some(in))
+    params.filter(_.in.contains(in))
   }
 }

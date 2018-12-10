@@ -1,18 +1,20 @@
 package com.twilio.guardrail
 package generators
 
-import _root_.io.swagger.models.{ HttpMethod, Operation }
+//import _root_.io.swagger.models.{ HttpMethod, Operation }
 import cats.arrow.FunctionK
 import cats.data.NonEmptyList
 import cats.instances.all._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.traverse._
-import com.twilio.guardrail.extract.{ ScalaPackage, ScalaTracingLabel, ServerRawResponse }
+import com.twilio.guardrail.extract.{ScalaPackage, ScalaTracingLabel, ServerRawResponse}
 import com.twilio.guardrail.languages.ScalaLanguage
 import com.twilio.guardrail.protocol.terms.server._
+
 import scala.collection.JavaConverters._
-import scala.meta.{ Term, _ }
+import scala.meta.{Term, _}
+import _root_.io.swagger.v3.oas.models.PathItem.HttpMethod
 
 object Http4sServerGenerator {
   implicit class ExtendedUnzip[T1, T2, T3, T4, T5, T6, T7](xs: NonEmptyList[(T1, T2, T3, T4, T5, T6, T7)]) {
@@ -38,7 +40,7 @@ object Http4sServerGenerator {
             case (pathStr, path) =>
               for {
                 _            <- Target.log.info("Http4sServerGenerator", "server", "extractOperations")(s"(${pathStr}, ${path})")
-                operationMap <- Target.fromOption(Option(path.getOperationMap), "No operations defined")
+                operationMap <- Target.fromOption(Option(path.readOperationsMap()), "No operations defined")
               } yield {
                 operationMap.asScala.toList.map {
                   case (httpMethod, operation) =>
@@ -562,8 +564,9 @@ object Http4sServerGenerator {
             )
           )
         )
-        val consumes = Option(operation.getConsumes).fold(Seq.empty[String])(_.asScala)
-        val produces = Option(operation.getProduces).fold(Seq.empty[String])(_.asScala)
+        val consumes = Option(operation.getRequestBody.getContent.keySet()).fold(Seq.empty[String])(_.asScala.toList)
+        val produces = Option(operation.getResponses.values()
+          .asScala.toList.flatMap(apiResponse => apiResponse.getContent.keySet().asScala.toList)).getOrElse(Seq.empty)
         Some(
           RenderedRoute(
             fullRoute,

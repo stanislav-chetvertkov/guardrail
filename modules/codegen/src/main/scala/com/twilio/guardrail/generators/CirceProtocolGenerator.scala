@@ -1,19 +1,21 @@
 package com.twilio.guardrail
 package generators
 
-import _root_.io.swagger.models.{ ArrayModel, ComposedModel, Model, ModelImpl, RefModel }
-import _root_.io.swagger.models.properties._
+//import _root_.io.swagger.models.{ArrayModel, ComposedModel, Model, ModelImpl, RefModel}
+//import _root_.io.swagger.models.properties._
 import cats.implicits._
 import cats.~>
-import com.twilio.guardrail.extract.{ Default, ScalaEmptyIsNull, ScalaType }
+import com.twilio.guardrail.extract.{Default, ScalaEmptyIsNull, ScalaType}
 import com.twilio.guardrail.terms
 import java.util.Locale
-import com.twilio.guardrail.languages.ScalaLanguage
 
+import com.twilio.guardrail.languages.ScalaLanguage
 import com.twilio.guardrail.protocol.terms.protocol._
 
 import scala.collection.JavaConverters._
 import scala.meta._
+import _root_.io.swagger.v3.oas.models.media._
+import com.twilio.guardrail.extract.VendorExtension.VendorExtensible
 
 object CirceProtocolGenerator {
   import ProtocolGenerator._
@@ -29,14 +31,15 @@ object CirceProtocolGenerator {
   object EnumProtocolTermInterp extends (EnumProtocolTerm[ScalaLanguage, ?] ~> Target) {
     def apply[T](term: EnumProtocolTerm[ScalaLanguage, T]): Target[T] = term match {
       case ExtractEnum(swagger) =>
-        Target.pure(Either.fromOption(Option(swagger.getEnum()).map(_.asScala.to[List]), "Model has no enumerations"))
+        Target.pure(Either.fromOption(Option(swagger.getEnum()).map(_.asScala.map(_.asInstanceOf[String]).to[List]), "Model has no enumerations"))
 
       case ExtractType(swagger) =>
         // Default to `string` for untyped enums.
         // Currently, only plain strings are correctly supported anyway, so no big loss.
         val tpeName = Option(swagger.getType()).getOrElse("string")
         Target.getGeneratorSettings.map { implicit gs =>
-          Either.right(SwaggerUtil.typeName(tpeName, Option(swagger.getFormat()), ScalaType(swagger)))
+          Either.right(
+            SwaggerUtil.typeName(tpeName, Option(swagger.getFormat()), ScalaType(swagger)(VendorExtensible.defaultVendorExtensibleSchemaProperty)))
         }
 
       case RenderMembers(clsName, elems) =>
@@ -93,10 +96,9 @@ object CirceProtocolGenerator {
       case ExtractProperties(swagger) =>
         Target.pure(
           (swagger match {
-            case m: ModelImpl        => Option(m.getProperties)
-            case comp: ComposedModel => comp.getAllOf().asScala.toList.lastOption.flatMap(prop => Option(prop.getProperties))
-            case comp: RefModel =>
-              Option(comp.getProperties)
+            case comp: ComposedSchema => comp.getAllOf().asScala.toList.lastOption.flatMap(prop => Option(prop.getProperties))
+            case comp: Schema[_] if Option(comp.get$ref()).isDefined => Option(comp.getProperties)
+            case m: Schema[_]        => Option(m.getProperties)
             case _ => None
           }).map(_.asScala.toList).toList.flatten
         )
@@ -113,21 +115,17 @@ object CirceProtocolGenerator {
             meta <- SwaggerUtil.propMeta(property)
 
             defaultValue = property match {
-              case _: MapProperty =>
+              case _: MapSchema =>
                 Option(q"Map.empty")
-              case _: ArrayProperty =>
+              case _: ArraySchema =>
                 Option(q"IndexedSeq.empty")
-              case p: BooleanProperty =>
+              case p: BooleanSchema =>
                 Default(p).extract[Boolean].map(Lit.Boolean(_))
-              case p: DoubleProperty =>
+              case p: NumberSchema => //fixme make it fine grain, handle additional cases
                 Default(p).extract[Double].map(Lit.Double(_))
-              case p: FloatProperty =>
-                Default(p).extract[Float].map(Lit.Float(_))
-              case p: IntegerProperty =>
+              case p: IntegerSchema =>
                 Default(p).extract[Int].map(Lit.Int(_))
-              case p: LongProperty =>
-                Default(p).extract[Long].map(Lit.Long(_))
-              case p: StringProperty =>
+              case p: StringSchema =>
                 Default(p).extract[String].map(Lit.String(_))
               case _ =>
                 None
@@ -135,9 +133,9 @@ object CirceProtocolGenerator {
 
             readOnlyKey = Option(name).filter(_ => Option(property.getReadOnly).contains(true))
             needsEmptyToNull = property match {
-              case d: DateProperty      => ScalaEmptyIsNull(d)
-              case dt: DateTimeProperty => ScalaEmptyIsNull(dt)
-              case s: StringProperty    => ScalaEmptyIsNull(s)
+              case d: DateSchema      => ScalaEmptyIsNull(d)
+              case dt: DateTimeSchema => ScalaEmptyIsNull(dt)
+              case s: StringSchema    => ScalaEmptyIsNull(s)
               case _                    => None
             }
             emptyToNullKey = needsEmptyToNull.filter(_ == true).map(_ => argName)
@@ -328,10 +326,10 @@ object CirceProtocolGenerator {
         Target.getGeneratorSettings.flatMap { implicit gs =>
           for {
             entries <- definitions.traverse {
-              case (clsName, impl: ModelImpl) if (Option(impl.getProperties()).isDefined || Option(impl.getEnum()).isDefined) =>
+              case (clsName, impl: Schema[_]) if (Option(impl.getProperties()).isDefined || Option(impl.getEnum()).isDefined) =>
                 Target.pure((clsName, SwaggerUtil.Resolved(Type.Name(clsName), None, None): SwaggerUtil.ResolvedType))
-              case (clsName, comp: ComposedModel) =>
-                val parentSimpleRef: Option[String]        = comp.getInterfaces.asScala.headOption.map(_.getSimpleRef)
+              case (clsName, comp: ComposedSchema) =>
+                val parentSimpleRef: Option[String]        = comp.getAllOf.asScala.headOption.map(_.get$ref()) //fixme simple ref
                 val parentTerm                             = parentSimpleRef.map(n => Term.Name(n))
                 val resolvedType: SwaggerUtil.ResolvedType = SwaggerUtil.Resolved(Type.Name(clsName), parentTerm, None)
                 Target.pure((clsName, resolvedType))
@@ -391,12 +389,12 @@ object CirceProtocolGenerator {
   object PolyProtocolTermInterp extends (PolyProtocolTerm[ScalaLanguage, ?] ~> Target) {
     override def apply[A](fa: PolyProtocolTerm[ScalaLanguage, A]): Target[A] = fa match {
       case ExtractSuperClass(swagger, definitions) =>
-        def allParents(model: Model): List[(String, Model, List[RefModel])] =
+        def allParents(model: Schema[_]): List[(String, Schema[_], List[Schema[_]])] =
           (model match {
-            case elem: ComposedModel =>
+            case elem: ComposedSchema =>
               definitions.collectFirst {
-                case (clsName, e) if elem.getInterfaces.asScala.headOption.exists(_.getSimpleRef == clsName) =>
-                  (clsName, e, elem.getInterfaces.asScala.tail.toList)
+                case (clsName, e) if elem.getAllOf.asScala.headOption.exists(_.get$ref() == clsName) => //fixme simple ref
+                  (clsName, e, elem.getAllOf.asScala.tail.toList)
               }
             case _ => None
           }) match {
@@ -404,7 +402,7 @@ object CirceProtocolGenerator {
             case _                    => Nil
           }
 
-        Target.pure(allParents(swagger))
+        Target.pure[A](allParents(swagger))
 
       case RenderADTCompanion(clsName, discriminator, encoder, decoder) =>
         val code = q"""object ${Term.Name(clsName)} {

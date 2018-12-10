@@ -1,20 +1,21 @@
 package com.twilio.guardrail
 package generators
 
-import _root_.io.swagger.models.{ HttpMethod, Operation }
 import cats.arrow.FunctionK
-import cats.data.{ NonEmptyList, OptionT }
+import cats.data.{NonEmptyList, OptionT}
 import cats.instances.all._
 import cats.syntax.applicative._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.traverse._
 import com.twilio.guardrail.SwaggerUtil
-import com.twilio.guardrail.extract.{ ScalaPackage, ScalaTracingLabel, ServerRawResponse }
+import com.twilio.guardrail.extract.{ScalaPackage, ScalaTracingLabel, ServerRawResponse}
 import com.twilio.guardrail.languages.ScalaLanguage
 import com.twilio.guardrail.protocol.terms.server._
+
 import scala.collection.JavaConverters._
 import scala.meta._
+import _root_.io.swagger.v3.oas.models.PathItem.HttpMethod
 
 object AkkaHttpServerGenerator {
   implicit class ExtendedUnzip[T1, T2, T3, T4, T5, T6, T7](xs: NonEmptyList[(T1, T2, T3, T4, T5, T6, T7)]) {
@@ -117,7 +118,7 @@ object AkkaHttpServerGenerator {
             case (pathStr, path) =>
               for {
                 _            <- Target.log.info("AkkaHttpServerGenerator", "server", "extractOperations")(s"(${pathStr}, ${path})")
-                operationMap <- Target.fromOption(Option(path.getOperationMap), "No operations defined")
+                operationMap <- Target.fromOption(Option(path.readOperationsMap()), "No operations defined")
               } yield {
                 operationMap.asScala.toList.map {
                   case (httpMethod, operation) =>
@@ -165,7 +166,7 @@ object AkkaHttpServerGenerator {
                   (code, friendlyName) = httpCode
                   statusCodeName       = Term.Name(friendlyName)
                   statusCode           = q"StatusCodes.${statusCodeName}"
-                  valueType <- Option(resp.getSchema).traverse { prop =>
+                  valueType <- Option(resp.getContent.values().asScala.head.getSchema).traverse { prop => //fixme using head
                     for {
                       meta <- SwaggerUtil.propMeta(prop)
                       resolved <- SwaggerUtil.ResolvedType
@@ -692,9 +693,9 @@ object AkkaHttpServerGenerator {
             }
           )
         })
-        headerArgs = filterParamBy("header").toList
-        pathArgs   = filterParamBy("path").toList
-        qsArgs     = filterParamBy("query").toList
+        headerArgs = filterParamBy("header")
+        pathArgs   = filterParamBy("path")
+        qsArgs     = filterParamBy("query")
 
         akkaMethod <- httpMethodToAkka(method)
         akkaPath   <- pathStrToAkka(basePath, path, pathArgs)

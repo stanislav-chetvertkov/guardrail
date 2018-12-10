@@ -166,7 +166,7 @@ object ProtocolGenerator {
         val concreteInterfaces = interfaces
           .flatMap(
             x =>
-              definitions.collectFirst {
+              definitions.collectFirst[Schema[_]] {
                 case (cls, y: ObjectSchema) if x == cls     => y
                 case (cls, y: ComposedSchema) if x == cls => y
             }

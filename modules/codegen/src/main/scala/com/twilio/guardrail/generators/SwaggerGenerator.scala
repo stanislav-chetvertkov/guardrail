@@ -1,7 +1,6 @@
 package com.twilio.guardrail
 package generators
 
-import _root_.io.swagger.models._
 import cats.implicits._
 import cats.syntax.either._
 import cats.~>
@@ -23,7 +22,7 @@ object SwaggerGenerator {
           .map({
             case (pathStr, path) =>
               Target
-                .fromOption(Option(path.getOperationMap), "No operations defined")
+                .fromOption(Option(path.readOperationsMap()), "No operations defined")
                 .map { operationMap =>
                   operationMap.asScala.map {
                     case (httpMethod, operation) =>

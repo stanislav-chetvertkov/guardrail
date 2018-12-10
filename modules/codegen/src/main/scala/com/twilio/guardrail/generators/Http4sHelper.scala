@@ -3,8 +3,10 @@ package com.twilio.guardrail.generators
 import cats.instances.all._
 import cats.syntax.traverse._
 import com.twilio.guardrail.generators.Http4sServerGenerator.ServerTermInterp.splitOperationParts
-import com.twilio.guardrail.{ StrictProtocolElems, SwaggerUtil, Target }
-import io.swagger.models.{ Operation, Response }
+import com.twilio.guardrail.{StrictProtocolElems, SwaggerUtil, Target}
+import io.swagger.v3.oas.models.Operation
+import io.swagger.v3.oas.models.responses.ApiResponse
+//import io.swagger.models.{ Operation, Response }
 
 import com.twilio.guardrail.languages.ScalaLanguage
 import scala.collection.JavaConverters._
@@ -81,7 +83,7 @@ object Http4sHelper {
   }
 
   def getResponses(operationId: String,
-                   responses: java.util.Map[String, Response],
+                   responses: java.util.Map[String, ApiResponse],
                    protocolElems: List[StrictProtocolElems[ScalaLanguage]]): Target[List[(Term.Name, Option[Type])]] =
     for {
       responses <- Target
@@ -94,13 +96,11 @@ object Http4sHelper {
               httpCode <- Target.fromOption(HttpHelper(key), s"Unknown HTTP type: ${key}")
               (_, friendlyName) = httpCode
               statusCodeName    = Term.Name(friendlyName)
-              valueType <- Option(resp.getSchema).traverse { prop =>
+              valueType <- Option(resp.getContent.values().asScala.head).traverse { prop => //fixme
                 for {
-                  meta <- SwaggerUtil.propMeta(prop)
-                  resolved <- SwaggerUtil.ResolvedType
-                    .resolve(meta, protocolElems)
-                  SwaggerUtil
-                    .Resolved(baseType, _, baseDefaultValue) = resolved
+                  meta <- SwaggerUtil.propMeta(prop.getSchema)
+                  resolved <- SwaggerUtil.ResolvedType.resolve(meta, protocolElems)
+                  SwaggerUtil.Resolved(baseType, _, baseDefaultValue) = resolved
                 } yield baseType
               }
             } yield (statusCodeName, valueType))
