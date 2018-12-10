@@ -3,7 +3,7 @@ package com.twilio.guardrail.protocol.terms.protocol
 import cats.InjectK
 import cats.free.Free
 import com.twilio.guardrail.languages.LA
-import com.twilio.guardrail.{ProtocolElems, StrictProtocolElems}
+import com.twilio.guardrail.{ ProtocolElems, StrictProtocolElems }
 import io.swagger.v3.oas.models.media.Schema
 
 class ProtocolSupportTerms[L <: LA, F[_]](implicit I: InjectK[ProtocolSupportTerm[L, ?], F]) {

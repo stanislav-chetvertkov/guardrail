@@ -6,10 +6,10 @@ import cats.free.Free
 import cats.instances.all._
 import cats.syntax.all._
 import com.twilio.guardrail.generators.ScalaParameter
-import com.twilio.guardrail.languages.{LA, ScalaLanguage}
-import com.twilio.guardrail.protocol.terms.server.{ServerTerm, ServerTerms}
+import com.twilio.guardrail.languages.{ LA, ScalaLanguage }
+import com.twilio.guardrail.protocol.terms.server.{ ServerTerm, ServerTerms }
 import io.swagger.v3.oas.models.PathItem.HttpMethod
-import io.swagger.v3.oas.models.{OpenAPI, Operation, PathItem}
+import io.swagger.v3.oas.models.{ OpenAPI, Operation, PathItem }
 
 import scala.collection.JavaConverters._
 

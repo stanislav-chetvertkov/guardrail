@@ -1,8 +1,9 @@
 package support
+import io.swagger.v3.oas.models.OpenAPI
 
 trait SwaggerSpecRunner {
 
-  import _root_.io.swagger.models._
+//  import _root_.io.swagger.models._
   import _root_.io.swagger.parser.SwaggerParser
   import cats.arrow.FunctionK
   import cats.implicits._
@@ -21,7 +22,7 @@ trait SwaggerSpecRunner {
                                                                               Servers[ScalaLanguage]) =
     runSwagger(new SwaggerParser().parse(spec)) _
 
-  def runSwagger(swagger: Swagger)(context: Context, framework: FunctionK[CodegenApplication, Target], generatorSettings: GeneratorSettings)(
+  def runSwagger(swagger: OpenAPI)(context: Context, framework: FunctionK[CodegenApplication, Target], generatorSettings: GeneratorSettings)(
       implicit F: FrameworkTerms[ScalaLanguage, CodegenApplication],
       Sc: ScalaTerms[ScalaLanguage, CodegenApplication],
       Sw: SwaggerTerms[ScalaLanguage, CodegenApplication]

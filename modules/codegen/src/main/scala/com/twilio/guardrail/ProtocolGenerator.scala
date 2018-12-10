@@ -1,6 +1,5 @@
 package com.twilio.guardrail
 
-
 import cats.data.EitherK
 import cats.free.Free
 import cats.implicits._
@@ -21,7 +20,6 @@ import scala.meta._
 import _root_.io.swagger.v3.oas.models.OpenAPI
 import _root_.io.swagger.v3.oas.models.media.StringSchema
 import _root_.io.swagger.v3.oas.models.media._
-
 
 case class ProtocolDefinitions[L <: LA](elems: List[StrictProtocolElems[L]],
                                         protocolImports: List[L#Import],
@@ -57,7 +55,7 @@ object ProtocolGenerator {
     )
 
     def toPascalCase(s: String): String = toPascalRegexes.foldLeft(s)(
-        (accum, regex) => regex.replaceAllIn(accum, m => m.group(1).toUpperCase(Locale.US))
+      (accum, regex) => regex.replaceAllIn(accum, m => m.group(1).toUpperCase(Locale.US))
     )
 
     def validProg(enum: List[String], tpe: Type): Free[F, EnumDefinition[ScalaLanguage]] = {
@@ -167,7 +165,7 @@ object ProtocolGenerator {
           .flatMap(
             x =>
               definitions.collectFirst[Schema[_]] {
-                case (cls, y: ObjectSchema) if x == cls     => y
+                case (cls, y: ObjectSchema) if x == cls   => y
                 case (cls, y: ComposedSchema) if x == cls => y
             }
           )
@@ -225,7 +223,7 @@ object ProtocolGenerator {
       case m: ComposedSchema =>
         m.getAllOf.asScala.toList.get(1).flatMap {
           case m: ObjectSchema => Some(m)
-          case _            => None
+          case _               => None
         }
       case _ => None
     }
@@ -285,8 +283,8 @@ object ProtocolGenerator {
         case _ => None
       }) match {
         case Some(x: ComposedSchema) => firstInHierarchy(x)
-        case Some(x: ObjectSchema)     => Some(x)
-        case _                      => None
+        case Some(x: ObjectSchema)   => Some(x)
+        case _                       => None
       }
 
     def children(cls: String, model: Schema[_]): List[ClassChild] = definitions.collect {
@@ -296,9 +294,9 @@ object ProtocolGenerator {
 
     def classHierarchy(cls: String, model: Schema[_]): Option[ClassParent] =
       (model match {
-        case m: ObjectSchema     => Option(m.getDiscriminator.getPropertyName)
+        case m: ObjectSchema   => Option(m.getDiscriminator.getPropertyName)
         case c: ComposedSchema => firstInHierarchy(c).map(_.getDiscriminator.getPropertyName)
-        case _                => None
+        case _                 => None
       }).map(
         ClassParent(
           cls,
@@ -335,11 +333,11 @@ object ProtocolGenerator {
     val definitionsWithoutPoly: List[(String, Schema[_])] = definitions.filter { // filter out polymorphic definitions
       case (clsName, _: ComposedSchema) if definitions.exists {
             case (_, m: ComposedSchema) => m.getAllOf.asScala.headOption.exists(_.get$ref() == clsName) //fixme contains?
-            case _                     => false
+            case _                      => false
           } =>
         false
       case (_, m: ObjectSchema) if Option(m.getDiscriminator.getPropertyName).isDefined => false
-      case _                                                         => true
+      case _                                                                            => true
     }
 
     for {

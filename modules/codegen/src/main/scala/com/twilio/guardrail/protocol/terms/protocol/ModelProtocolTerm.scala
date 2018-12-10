@@ -1,6 +1,6 @@
 package com.twilio.guardrail.protocol.terms.protocol
 
-import com.twilio.guardrail.{ProtocolParameter, SuperClass}
+import com.twilio.guardrail.{ ProtocolParameter, SuperClass }
 import com.twilio.guardrail.generators.GeneratorSettings
 import com.twilio.guardrail.languages.LA
 import io.swagger.v3.oas.models.media.Schema

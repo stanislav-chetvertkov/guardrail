@@ -1,6 +1,6 @@
 package com.twilio.guardrail
 
-import java.net.{URI, URL}
+import java.net.{ URI, URL }
 
 import io.swagger.v3.oas.models.OpenAPI
 import cats.data.NonEmptyList
@@ -14,12 +14,12 @@ import com.twilio.guardrail.generators.GeneratorSettings
 import com.twilio.guardrail.languages.ScalaLanguage
 import com.twilio.guardrail.protocol.terms.protocol.PolyProtocolTerms
 import com.twilio.guardrail.terms.framework.FrameworkTerms
-import com.twilio.guardrail.terms.{CoreTerm, CoreTerms, ScalaTerms, SwaggerTerms}
-import java.nio.file.{Path, Paths}
+import com.twilio.guardrail.terms.{ CoreTerm, CoreTerms, ScalaTerms, SwaggerTerms }
+import java.nio.file.{ Path, Paths }
 
 import scala.collection.JavaConverters._
 import scala.io.AnsiColor
-import scala.meta.{io, _}
+import scala.meta.{ io, _ }
 import com.twilio.guardrail.languages.ScalaLanguage
 
 import scala.Option
@@ -30,30 +30,26 @@ object Common {
   // fixme: temporary means of using open-api v3 model without introducing too many changes at the same time
   // fixme: remove
   object OpenApiConversion {
-    def schemes(serversUrls: List[String]): List[String] = { //fixme: toUpperCase ???
-      serversUrls.map(s =>  new URI(s)).map(_.getScheme)
-    }
+    def schemes(serversUrls: List[String]): List[String] = //fixme: toUpperCase ???
+      serversUrls.map(s => new URI(s)).map(_.getScheme)
 
-    def host(serversUrls: List[String]): Option[String] = {
+    def host(serversUrls: List[String]): Option[String] =
       for {
         list <- Option(serversUrls).filter(_.nonEmpty)
         head <- list.headOption
       } yield {
         new URI(head).getHost
       }
-    }
 
-    def basePath(serversUrls: List[String]): Option[String] = {
+    def basePath(serversUrls: List[String]): Option[String] =
       for {
         list <- Option(serversUrls).filter(_.nonEmpty)
         head <- list.headOption
       } yield {
         new URI(head).getPath
       }
-    }
 
   }
-
 
   def writePackage(kind: CodegenTarget,
                    context: Context,
@@ -175,7 +171,7 @@ object Common {
 
       serverUrls = swagger.getServers.asScala.toList.map(_.getUrl)
 
-      schemes = OpenApiConversion.schemes(serverUrls)
+      schemes  = OpenApiConversion.schemes(serverUrls)
       host     = OpenApiConversion.host(serverUrls)
       basePath = OpenApiConversion.basePath(serverUrls)
 
@@ -228,11 +224,11 @@ object Common {
                 """
             )
         }) ++ servers
-          .map{
-            case Server(pkg, extraImports, src) =>
-              WriteTree(
-                resolveFile(pkgPath)(pkg :+ "Routes.scala"),
-                source"""
+        .map {
+          case Server(pkg, extraImports, src) =>
+            WriteTree(
+              resolveFile(pkgPath)(pkg :+ "Routes.scala"),
+              source"""
                     package ${buildPkgTerm((pkgName ++ pkg))}
                     ..${extraImports}
                     import ${buildPkgTerm(List("_root_") ++ pkgName ++ List("Implicits"))}._
@@ -241,8 +237,8 @@ object Common {
                     ..${customImports}
                     ..$src
                     """
-              )
-          }
+            )
+        }
 
       implicits              <- renderImplicits(pkgName, frameworkImports, protocolImports, customImports)
       frameworkImplicitsFile <- renderFrameworkImplicits(pkgName, frameworkImports, protocolImports, frameworkImplicits)

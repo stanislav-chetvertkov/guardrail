@@ -2,10 +2,8 @@ package com.twilio.guardrail.extract
 
 import io.swagger.v3.oas.models.media._
 import io.swagger.v3.oas.models._
-import io.swagger.v3.oas.models.parameters.{CookieParameter, Parameter}
+import io.swagger.v3.oas.models.parameters.{ CookieParameter, Parameter }
 import io.swagger.v3.oas.models.responses.ApiResponse
-
-
 
 object VendorExtension {
   trait VendorExtensible[-F] { //fixme -

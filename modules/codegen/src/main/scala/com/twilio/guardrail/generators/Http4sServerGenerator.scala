@@ -8,12 +8,12 @@ import cats.instances.all._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.traverse._
-import com.twilio.guardrail.extract.{ScalaPackage, ScalaTracingLabel, ServerRawResponse}
+import com.twilio.guardrail.extract.{ ScalaPackage, ScalaTracingLabel, ServerRawResponse }
 import com.twilio.guardrail.languages.ScalaLanguage
 import com.twilio.guardrail.protocol.terms.server._
 
 import scala.collection.JavaConverters._
-import scala.meta.{Term, _}
+import scala.meta.{ Term, _ }
 import _root_.io.swagger.v3.oas.models.PathItem.HttpMethod
 
 object Http4sServerGenerator {
@@ -565,8 +565,8 @@ object Http4sServerGenerator {
           )
         )
         val consumes = Option(operation.getRequestBody.getContent.keySet()).fold(Seq.empty[String])(_.asScala.toList)
-        val produces = Option(operation.getResponses.values()
-          .asScala.toList.flatMap(apiResponse => apiResponse.getContent.keySet().asScala.toList)).getOrElse(Seq.empty)
+        val produces =
+          Option(operation.getResponses.values().asScala.toList.flatMap(apiResponse => apiResponse.getContent.keySet().asScala.toList)).getOrElse(Seq.empty)
         Some(
           RenderedRoute(
             fullRoute,

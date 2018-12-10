@@ -1,11 +1,10 @@
 package com.twilio.guardrail.protocol.terms.client
 
-import com.twilio.guardrail.{RenderedClientOperation, StrictProtocolElems}
+import com.twilio.guardrail.{ RenderedClientOperation, StrictProtocolElems }
 import com.twilio.guardrail.terms.RouteMeta
 import com.twilio.guardrail.languages.LA
 import com.twilio.guardrail.generators.GeneratorSettings
 import io.swagger.v3.oas.models.Operation
-
 
 sealed trait ClientTerm[L <: LA, T]
 case class GenerateClientOperation[L <: LA](className: List[String], route: RouteMeta, tracing: Boolean, protocolElems: List[StrictProtocolElems[L]])

@@ -11,7 +11,8 @@ import io.swagger.v3.oas.models.media.Schema
   */
 sealed trait PolyProtocolTerm[L <: LA, T]
 
-case class ExtractSuperClass[L <: LA](swagger: Schema[_], definitions: List[(String, Schema[_])]) extends PolyProtocolTerm[L, List[(String, Schema[_], List[Ref])]]
+case class ExtractSuperClass[L <: LA](swagger: Schema[_], definitions: List[(String, Schema[_])])
+    extends PolyProtocolTerm[L, List[(String, Schema[_], List[Ref])]]
 
 case class RenderSealedTrait[L <: LA](className: String, terms: List[L#MethodParameter], discriminator: String, parents: List[SuperClass[L]] = Nil)
     extends PolyProtocolTerm[L, L#Trait]

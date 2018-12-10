@@ -1,11 +1,10 @@
 package com.twilio.guardrail.protocol.terms.protocol
 
-import _root_.io.swagger.models.ModelImpl
 import cats.InjectK
 import cats.free.Free
 import com.twilio.guardrail.generators.GeneratorSettings
 import com.twilio.guardrail.languages.LA
-import io.swagger.v3.oas.models.media.{Schema, StringSchema}
+import io.swagger.v3.oas.models.media.{ Schema, StringSchema }
 
 class EnumProtocolTerms[L <: LA, F[_]](implicit I: InjectK[EnumProtocolTerm[L, ?], F]) {
   def extractEnum(swagger: Schema[_]): Free[F, Either[String, List[String]]] =

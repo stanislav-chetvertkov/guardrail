@@ -2,7 +2,7 @@ package com.twilio.guardrail
 package generators
 
 import _root_.io.swagger.v3.oas.models.parameters.Parameter
-import com.twilio.guardrail.extract.{Default, ScalaFileHashAlgorithm, ScalaType}
+import com.twilio.guardrail.extract.{ Default, ScalaFileHashAlgorithm, ScalaType }
 import com.twilio.guardrail.languages.ScalaLanguage
 import java.util.Locale
 
@@ -61,7 +61,8 @@ object ScalaParameter {
     }
 
     def paramMeta[T <: Parameter](param: T): Target[SwaggerUtil.ResolvedType] = {
-      def getDefault[U <: Parameter: Default.GetDefault](p: U): Option[Term] = Option(p.getSchema.getType)
+      def getDefault[U <: Parameter: Default.GetDefault](p: U): Option[Term] =
+        Option(p.getSchema.getType)
           .flatMap { _type =>
             val fmt = Option(p.getSchema.getFormat)
             (_type, fmt) match {
@@ -137,7 +138,7 @@ object ScalaParameter {
         enumDefaultValue <- (paramType match {
           case tpe @ Type.Name(tpeName) =>
             protocolElems
-              .collect{
+              .collect {
                 case x @ EnumDefinition(_, Type.Name(`tpeName`), _, _, _) => x
               }
               .headOption

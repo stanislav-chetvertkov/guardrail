@@ -9,4 +9,4 @@ case class RouteMeta(path: String, method: HttpMethod, operation: Operation)
 
 sealed trait SwaggerTerm[L <: LA, T]
 case class ExtractOperations[L <: LA](paths: List[(String, PathItem)]) extends SwaggerTerm[L, List[RouteMeta]]
-case class GetClassName[L <: LA](operation: Operation)             extends SwaggerTerm[L, List[String]]
+case class GetClassName[L <: LA](operation: Operation)                 extends SwaggerTerm[L, List[String]]

@@ -1,5 +1,5 @@
 package com.twilio.guardrail.extract
-import io.swagger.v3.oas.models.media.{BooleanSchema, IntegerSchema, NumberSchema, StringSchema}
+import io.swagger.v3.oas.models.media.{ BooleanSchema, IntegerSchema, NumberSchema, StringSchema }
 import io.swagger.v3.oas.models.parameters.Parameter
 
 object Default {

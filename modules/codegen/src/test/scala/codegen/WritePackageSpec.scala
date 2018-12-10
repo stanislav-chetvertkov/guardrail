@@ -2,7 +2,7 @@ package codegen
 
 import java.nio.file.{ Path, Paths }
 
-import _root_.io.swagger.models.Swagger
+//import _root_.io.swagger.models.Swagger
 import _root_.io.swagger.parser.SwaggerParser
 import cats.data.NonEmptyList
 import com.twilio.guardrail._

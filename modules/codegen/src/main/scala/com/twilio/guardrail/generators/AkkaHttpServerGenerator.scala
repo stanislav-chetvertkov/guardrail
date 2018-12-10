@@ -2,14 +2,14 @@ package com.twilio.guardrail
 package generators
 
 import cats.arrow.FunctionK
-import cats.data.{NonEmptyList, OptionT}
+import cats.data.{ NonEmptyList, OptionT }
 import cats.instances.all._
 import cats.syntax.applicative._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.traverse._
 import com.twilio.guardrail.SwaggerUtil
-import com.twilio.guardrail.extract.{ScalaPackage, ScalaTracingLabel, ServerRawResponse}
+import com.twilio.guardrail.extract.{ ScalaPackage, ScalaTracingLabel, ServerRawResponse }
 import com.twilio.guardrail.languages.ScalaLanguage
 import com.twilio.guardrail.protocol.terms.server._
 

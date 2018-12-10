@@ -306,9 +306,9 @@ object Http4sClientGenerator {
               List(ScalaParameter.fromParam(param"methodName: String = ${Lit.String(toDashedCase(methodName))}"))
             else List.empty
             extraImplicits = List.empty
-            consumes = Option(operation.getRequestBody.getContent.keySet()).fold(Seq.empty[String])(_.asScala.toList)
-            produces = Option(operation.getResponses.values()
-              .asScala.toList.flatMap(apiResponse => apiResponse.getContent.keySet().asScala.toList)).getOrElse(Seq.empty)
+            consumes       = Option(operation.getRequestBody.getContent.keySet()).fold(Seq.empty[String])(_.asScala.toList)
+            produces = Option(operation.getResponses.values().asScala.toList.flatMap(apiResponse => apiResponse.getContent.keySet().asScala.toList))
+              .getOrElse(Seq.empty)
             renderedClientOperation = build(methodName,
                                             httpMethod,
                                             urlWithParams,

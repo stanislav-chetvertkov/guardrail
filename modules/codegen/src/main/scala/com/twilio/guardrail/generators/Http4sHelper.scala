@@ -3,10 +3,9 @@ package com.twilio.guardrail.generators
 import cats.instances.all._
 import cats.syntax.traverse._
 import com.twilio.guardrail.generators.Http4sServerGenerator.ServerTermInterp.splitOperationParts
-import com.twilio.guardrail.{StrictProtocolElems, SwaggerUtil, Target}
+import com.twilio.guardrail.{ StrictProtocolElems, SwaggerUtil, Target }
 import io.swagger.v3.oas.models.Operation
 import io.swagger.v3.oas.models.responses.ApiResponse
-//import io.swagger.models.{ Operation, Response }
 
 import com.twilio.guardrail.languages.ScalaLanguage
 import scala.collection.JavaConverters._
@@ -98,7 +97,7 @@ object Http4sHelper {
               statusCodeName    = Term.Name(friendlyName)
               valueType <- Option(resp.getContent.values().asScala.head).traverse { prop => //fixme
                 for {
-                  meta <- SwaggerUtil.propMeta(prop.getSchema)
+                  meta     <- SwaggerUtil.propMeta(prop.getSchema)
                   resolved <- SwaggerUtil.ResolvedType.resolve(meta, protocolElems)
                   SwaggerUtil.Resolved(baseType, _, baseDefaultValue) = resolved
                 } yield baseType

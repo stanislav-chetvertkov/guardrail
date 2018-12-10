@@ -1,6 +1,6 @@
 package com.twilio.guardrail
 
-import _root_.io.swagger.models._
+
 import cats.free.Free
 import cats.instances.all._
 import cats.syntax.all._
@@ -24,7 +24,6 @@ case class RenderedClientOperation[L <: LA](
 )
 
 import io.swagger.v3.oas.models._
-
 
 object ClientGenerator {
   def fromSwagger[L <: LA, F[_]](context: Context, frameworkImports: List[L#Import])(

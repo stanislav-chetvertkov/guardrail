@@ -1,11 +1,9 @@
 package com.twilio.guardrail
 package generators
 
-//import _root_.io.swagger.models.{ArrayModel, ComposedModel, Model, ModelImpl, RefModel}
-//import _root_.io.swagger.models.properties._
 import cats.implicits._
 import cats.~>
-import com.twilio.guardrail.extract.{Default, ScalaEmptyIsNull, ScalaType}
+import com.twilio.guardrail.extract.{ Default, ScalaEmptyIsNull, ScalaType }
 import com.twilio.guardrail.terms
 import java.util.Locale
 
@@ -38,8 +36,7 @@ object CirceProtocolGenerator {
         // Currently, only plain strings are correctly supported anyway, so no big loss.
         val tpeName = Option(swagger.getType()).getOrElse("string")
         Target.getGeneratorSettings.map { implicit gs =>
-          Either.right(
-            SwaggerUtil.typeName(tpeName, Option(swagger.getFormat()), ScalaType(swagger)(VendorExtensible.defaultVendorExtensibleSchemaProperty)))
+          Either.right(SwaggerUtil.typeName(tpeName, Option(swagger.getFormat()), ScalaType(swagger)(VendorExtensible.defaultVendorExtensibleSchemaProperty)))
         }
 
       case RenderMembers(clsName, elems) =>
@@ -96,10 +93,10 @@ object CirceProtocolGenerator {
       case ExtractProperties(swagger) =>
         Target.pure(
           (swagger match {
-            case comp: ComposedSchema => comp.getAllOf().asScala.toList.lastOption.flatMap(prop => Option(prop.getProperties))
+            case comp: ComposedSchema                                => comp.getAllOf().asScala.toList.lastOption.flatMap(prop => Option(prop.getProperties))
             case comp: Schema[_] if Option(comp.get$ref()).isDefined => Option(comp.getProperties)
-            case m: Schema[_]        => Option(m.getProperties)
-            case _ => None
+            case m: Schema[_]                                        => Option(m.getProperties)
+            case _                                                   => None
           }).map(_.asScala.toList).toList.flatten
         )
 
@@ -136,7 +133,7 @@ object CirceProtocolGenerator {
               case d: DateSchema      => ScalaEmptyIsNull(d)
               case dt: DateTimeSchema => ScalaEmptyIsNull(dt)
               case s: StringSchema    => ScalaEmptyIsNull(s)
-              case _                    => None
+              case _                  => None
             }
             emptyToNullKey = needsEmptyToNull.filter(_ == true).map(_ => argName)
 
@@ -402,7 +399,7 @@ object CirceProtocolGenerator {
             case _                    => Nil
           }
 
-        Target.pure[A](allParents(swagger))
+        Target.pure(allParents(swagger))
 
       case RenderADTCompanion(clsName, discriminator, encoder, decoder) =>
         val code = q"""object ${Term.Name(clsName)} {

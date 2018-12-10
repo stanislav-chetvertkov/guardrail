@@ -6,11 +6,11 @@ import io.swagger.v3.oas.models.media._
 import io.swagger.v3.oas.models.parameters._
 import io.swagger.v3.oas.models.responses._
 import cats.syntax.either._
-import cats.{FlatMap, Foldable}
+import cats.{ FlatMap, Foldable }
 import cats.instances.list._
-import com.twilio.guardrail.extract.{Default, ScalaType}
-import com.twilio.guardrail.generators.{GeneratorSettings, ScalaParameter}
-import java.util.{Map => JMap}
+import com.twilio.guardrail.extract.{ Default, ScalaType }
+import com.twilio.guardrail.generators.{ GeneratorSettings, ScalaParameter }
+import java.util.{ Map => JMap }
 
 import scala.language.reflectiveCalls
 import scala.meta._
@@ -154,26 +154,26 @@ object SwaggerUtil {
 
   case class ParamMeta(tpe: Type, defaultValue: Option[Term])
   def paramMeta[T <: Parameter](param: T): Target[ParamMeta] = {
-    def getDefault[U <: Parameter : Default.GetDefault](p: U): Option[Term] =
+    def getDefault[U <: Parameter: Default.GetDefault](p: U): Option[Term] =
       Option(p.getSchema.getType)
-          .flatMap { _type =>
-            val fmt = Option(p.getSchema.getFormat)
-            (_type, fmt) match {
-              case ("string", None) =>
-                Default(p).extract[String].map(Lit.String(_))
-              case ("number", Some("float")) =>
-                Default(p).extract[Float].map(Lit.Float(_))
-              case ("number", Some("double")) =>
-                Default(p).extract[Double].map(Lit.Double(_))
-              case ("integer", Some("int32")) =>
-                Default(p).extract[Int].map(Lit.Int(_))
-              case ("integer", Some("int64")) =>
-                Default(p).extract[Long].map(Lit.Long(_))
-              case ("boolean", None) =>
-                Default(p).extract[Boolean].map(Lit.Boolean(_))
-              case x => None
-            }
+        .flatMap { _type =>
+          val fmt = Option(p.getSchema.getFormat)
+          (_type, fmt) match {
+            case ("string", None) =>
+              Default(p).extract[String].map(Lit.String(_))
+            case ("number", Some("float")) =>
+              Default(p).extract[Float].map(Lit.Float(_))
+            case ("number", Some("double")) =>
+              Default(p).extract[Double].map(Lit.Double(_))
+            case ("integer", Some("int32")) =>
+              Default(p).extract[Int].map(Lit.Int(_))
+            case ("integer", Some("int64")) =>
+              Default(p).extract[Long].map(Lit.Long(_))
+            case ("boolean", None) =>
+              Default(p).extract[Boolean].map(Lit.Boolean(_))
+            case x => None
           }
+        }
 
     Target.getGeneratorSettings.flatMap { implicit gs =>
       param match {
@@ -216,7 +216,7 @@ object SwaggerUtil {
             tpeName <- Target.fromOption(Option(r.get$ref()), "$ref not defined") //fixme use simple ref
           } yield ParamMeta(Type.Name(tpeName), None)
 
-          //fixme probably unnecessary
+        //fixme probably unnecessary
 //        case x: SerializableParameter =>
 //          for {
 //            tpeName <- Target.fromOption(Option(x.getType()), s"Missing type")
@@ -229,8 +229,7 @@ object SwaggerUtil {
   }
 
   // Standard type conversions, as documented in http://swagger.io/specification/#data-types-12
-  def typeName(typeName: String, format: Option[String], customType: Option[String])
-              (implicit gs: GeneratorSettings): Type = {
+  def typeName(typeName: String, format: Option[String], customType: Option[String])(implicit gs: GeneratorSettings): Type = {
     def log(fmt: Option[String], t: Type): Type = {
       fmt.foreach { fmt =>
         println(s"Warning: Deprecated behavior: Unsupported type '$fmt', falling back to $t. Please switch definitions to x-scala-type for custom types")
@@ -321,7 +320,6 @@ object SwaggerUtil {
             .fromOption(Option(r.get$ref()), "Malformed $ref")
             .map(Deferred.apply _)
 
-
         case b: BooleanSchema =>
           Target.pure(Resolved(typeName("boolean", None, ScalaType(b)), None, Default(b).extract[Boolean].map(Lit.Boolean(_))))
 
@@ -340,7 +338,7 @@ object SwaggerUtil {
         case d: NumberSchema =>
           Target.pure(Resolved(typeName("number", Some(d.getType), ScalaType(d)), None, Default(d).extract[Double].map(Lit.Double(_))))
 
-          //fixme temporarily(?) commented out
+        //fixme temporarily(?) commented out
 //        case u: UntypedProperty =>
 //          Target.pure(Resolved(gs.jsonType, None, None))
 //
