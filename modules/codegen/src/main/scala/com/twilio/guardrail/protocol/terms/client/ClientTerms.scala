@@ -7,8 +7,6 @@ import com.twilio.guardrail.languages.LA
 import com.twilio.guardrail.terms.RouteMeta
 import com.twilio.guardrail.generators.{ Responses, ScalaParameters }
 
-import _root_.io.swagger.models.Operation
-
 class ClientTerms[L <: LA, F[_]](implicit I: InjectK[ClientTerm[L, ?], F]) {
   def generateClientOperation(className: List[String], tracing: Boolean, parameters: ScalaParameters[L])(
       route: RouteMeta,

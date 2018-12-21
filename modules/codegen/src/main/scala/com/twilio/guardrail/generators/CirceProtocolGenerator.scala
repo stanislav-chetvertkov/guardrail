@@ -1,19 +1,18 @@
 package com.twilio.guardrail
 package generators
 
-import _root_.io.swagger.models.{ ArrayModel, ComposedModel, Model, ModelImpl, RefModel }
-import _root_.io.swagger.models.properties._
 import cats.implicits._
 import cats.~>
 import com.twilio.guardrail.extract.{ Default, ScalaEmptyIsNull, ScalaType }
 import com.twilio.guardrail.terms
 import java.util.Locale
-import com.twilio.guardrail.languages.ScalaLanguage
 
+import com.twilio.guardrail.languages.ScalaLanguage
 import com.twilio.guardrail.protocol.terms.protocol._
 
 import scala.collection.JavaConverters._
 import scala.meta._
+import _root_.io.swagger.v3.oas.models.media._
 
 object CirceProtocolGenerator {
   import ProtocolGenerator._
@@ -93,9 +92,9 @@ object CirceProtocolGenerator {
       case ExtractProperties(swagger) =>
         Target.pure(
           (swagger match {
-            case m: ModelImpl        => Option(m.getProperties)
-            case comp: ComposedModel => comp.getAllOf().asScala.toList.lastOption.flatMap(prop => Option(prop.getProperties))
-            case comp: RefModel =>
+            case m: ObjectSchema      => Option(m.getProperties)
+            case comp: ComposedSchema => comp.getAllOf().asScala.toList.lastOption.flatMap(prop => Option(prop.getProperties))
+            case comp: Schema[_] if Option(comp.get$ref()).isDefined =>
               Option(comp.getProperties)
             case _ => None
           }).map(_.asScala.toList).toList.flatten
@@ -238,7 +237,7 @@ object CirceProtocolGenerator {
           param => discriminators.contains(param.name)
         )
         val needsEmptyToNull: Boolean = params.exists(_.emptyToNull == EmptyIsNull)
-        val paramCount                    = params.length
+        val paramCount                = params.length
         val decVal = if (paramCount <= 22 && !needsEmptyToNull) {
           val names: List[Lit] = params.map(_.name).map(Lit.String(_)).to[List]
           q"""
@@ -359,12 +358,12 @@ object CirceProtocolGenerator {
   object PolyProtocolTermInterp extends (PolyProtocolTerm[ScalaLanguage, ?] ~> Target) {
     override def apply[A](fa: PolyProtocolTerm[ScalaLanguage, A]): Target[A] = fa match {
       case ExtractSuperClass(swagger, definitions) =>
-        def allParents(model: Model): List[(String, Model, List[RefModel])] =
+        def allParents(model: Schema[_]): List[(String, Schema[_], List[Schema[_]])] =
           (model match {
-            case elem: ComposedModel =>
+            case elem: ComposedSchema =>
               definitions.collectFirst {
-                case (clsName, e) if elem.getInterfaces.asScala.headOption.exists(_.getSimpleRef == clsName) =>
-                  (clsName, e, elem.getInterfaces.asScala.tail.toList)
+                case (clsName, e) if elem.getAllOf.asScala.headOption.exists(_.get$ref() == clsName) =>
+                  (clsName, e, elem.getAllOf.asScala.tail.toList)
               }
             case _ => None
           }) match {

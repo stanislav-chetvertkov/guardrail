@@ -1,16 +1,15 @@
 package com.twilio.guardrail.protocol.terms.protocol
 
-import _root_.io.swagger.models.{ ComposedModel, Model, ModelImpl }
-import _root_.io.swagger.models.properties.Property
 import com.twilio.guardrail.{ ProtocolParameter, SuperClass }
 import com.twilio.guardrail.languages.LA
 import com.twilio.guardrail.SwaggerUtil.ResolvedType
+import io.swagger.v3.oas.models.media.Schema
 
 sealed trait ModelProtocolTerm[L <: LA, T]
-case class ExtractProperties[L <: LA](swagger: Model) extends ModelProtocolTerm[L, List[(String, Property)]]
+case class ExtractProperties[L <: LA](swagger: Schema[_]) extends ModelProtocolTerm[L, List[(String, Schema[_])]]
 case class TransformProperty[L <: LA](clsName: String,
                                       name: String,
-                                      prop: Property,
+                                      prop: Schema[_],
                                       meta: ResolvedType[L],
                                       needCamelSnakeConversion: Boolean,
                                       concreteTypes: List[PropMeta[L]])

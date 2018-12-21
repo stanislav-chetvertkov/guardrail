@@ -1,7 +1,7 @@
 package com.twilio.guardrail
 package generators
 
-import _root_.io.swagger.models._
+import _root_.io.swagger.v3.oas.models._
 import cats.implicits._
 import cats.syntax.either._
 import cats.~>
@@ -25,7 +25,7 @@ object SwaggerGenerator {
             case (pathStr, path) =>
               for {
 
-                operationMap <- Target.fromOption(Option(path.getOperationMap), "No operations defined")
+                operationMap <- Target.fromOption(Option(path.readOperationsMap()), "No operations defined")
               } yield {
                 operationMap.asScala.toList.map {
                   case (httpMethod, operation) =>
@@ -57,29 +57,29 @@ object SwaggerGenerator {
       case GetParameterName(parameter) =>
         Target.fromOption(Option(parameter.getName()), "Parameter missing \"name\"")
 
-      case GetBodyParameterSchema(parameter) =>
-        Target.fromOption(Option(parameter.getSchema()), "Schema not specified")
+//      case GetBodyParameterSchema(parameter) =>
+//        Target.fromOption(Option(parameter.getSchema()), "Schema not specified")
 
-      case GetHeaderParameterType(parameter) =>
-        Target.fromOption(Option(parameter.getType()), s"Missing type")
+//      case GetHeaderParameterType(parameter) =>
+//        Target.fromOption(Option(parameter.getType()), s"Missing type")
 
-      case GetPathParameterType(parameter) =>
-        Target.fromOption(Option(parameter.getType()), s"Missing type")
+//      case GetPathParameterType(parameter) =>
+//        Target.fromOption(Option(parameter.getType()), s"Missing type")
 
-      case GetQueryParameterType(parameter) =>
-        Target.fromOption(Option(parameter.getType()), s"Missing type")
+//      case GetQueryParameterType(parameter) =>
+//        Target.fromOption(Option(parameter.getType()), s"Missing type")
 
-      case GetCookieParameterType(parameter) =>
-        Target.fromOption(Option(parameter.getType()), s"Missing type")
+//      case GetCookieParameterType(parameter) =>
+//        Target.fromOption(Option(parameter.getType()), s"Missing type")
 
-      case GetFormParameterType(parameter) =>
-        Target.fromOption(Option(parameter.getType()), s"Missing type")
+//      case GetFormParameterType(parameter) =>
+//        Target.fromOption(Option(parameter.getType()), s"Missing type")
 
-      case GetSerializableParameterType(parameter) =>
-        Target.fromOption(Option(parameter.getType()), s"Missing type")
+//      case GetSerializableParameterType(parameter) =>
+//        Target.fromOption(Option(parameter.getType()), s"Missing type")
 
-      case GetRefParameterRef(parameter) =>
-        Target.fromOption(Option(parameter.getSimpleRef()), "$ref not defined")
+//      case GetRefParameterRef(parameter) =>
+//        Target.fromOption(Option(parameter.()), "$ref not defined")
 
       case FallbackParameterHandler(parameter) =>
         Target.raiseError(s"Unsure how to handle ${parameter}")
@@ -94,10 +94,10 @@ object SwaggerGenerator {
         Target.fromOption(Option(operation.getResponses).map(_.asScala.toMap), s"No responses defined for ${operationId}")
 
       case GetSimpleRef(ref) =>
-        Target.fromOption(Option(ref.getSimpleRef()), "Unspecified $ref")
+        Target.fromOption(Option(ref.get$ref()), "Unspecified $ref")
 
       case GetSimpleRefP(ref) =>
-        Target.fromOption(Option(ref.getSimpleRef()), "Unspecified $ref")
+        Target.fromOption(Option(ref.get$ref()), "Unspecified $ref")
 
       case GetItems(arr) =>
         Target.fromOption(Option(arr.getItems()), "items.type unspecified")

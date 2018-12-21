@@ -1,6 +1,6 @@
 package com.twilio.guardrail
 
-import _root_.io.swagger.models.Swagger
+import _root_.io.swagger.v3.oas.models.OpenAPI
 import cats.data.NonEmptyList
 import cats.free.Free
 import cats.implicits._

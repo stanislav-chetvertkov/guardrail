@@ -5,8 +5,6 @@ import com.twilio.guardrail.generators.{ Responses, ScalaParameters }
 import com.twilio.guardrail.terms.RouteMeta
 import com.twilio.guardrail.languages.LA
 
-import _root_.io.swagger.models.Operation
-
 sealed trait ClientTerm[L <: LA, T]
 case class GenerateClientOperation[L <: LA](className: List[String],
                                             route: RouteMeta,

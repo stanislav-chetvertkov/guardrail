@@ -1,19 +1,19 @@
 package codegen
 
-import java.nio.file.{ Path, Paths }
+import java.nio.file.{Path, Paths}
 
-import _root_.io.swagger.models.Swagger
-import _root_.io.swagger.parser.SwaggerParser
+import _root_.io.swagger.v3.oas.models.OpenAPI
 import cats.data.NonEmptyList
 import com.twilio.guardrail._
 import com.twilio.guardrail.core.CoreTermInterp
 import com.twilio.guardrail.terms.CoreTerm
-import org.scalatest.{ FunSuite, Matchers }
+import org.scalatest.{FunSuite, Matchers}
 
 import scala.meta._
+import _root_.io.swagger.v3.parser.OpenAPIV3Parser
 
 class WritePackageSpec extends FunSuite with Matchers {
-  val swagger: Swagger = new SwaggerParser().parse(s"""
+  val swagger: OpenAPI = new OpenAPIV3Parser().parse(s"""
     |swagger: "2.0"
     |info:
     |  title: Whatever

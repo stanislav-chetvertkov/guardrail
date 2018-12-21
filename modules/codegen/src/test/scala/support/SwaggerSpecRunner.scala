@@ -1,9 +1,9 @@
 package support
+import io.swagger.v3.parser.OpenAPIV3Parser
 
 trait SwaggerSpecRunner {
 
-  import _root_.io.swagger.models._
-  import _root_.io.swagger.parser.SwaggerParser
+  import _root_.io.swagger.v3.oas.models._
   import cats.arrow.FunctionK
   import cats.implicits._
   import com.twilio.guardrail._
@@ -15,7 +15,7 @@ trait SwaggerSpecRunner {
   def runSwaggerSpec(
       spec: String
   ): (Context, FunctionK[CodegenApplication, Target]) => (ProtocolDefinitions[ScalaLanguage], Clients[ScalaLanguage], Servers[ScalaLanguage]) =
-    runSwagger(new SwaggerParser().parse(spec)) _
+    runSwagger(new OpenAPIV3Parser().parse(spec)) _
 
   def runSwagger(swagger: Swagger)(context: Context, framework: FunctionK[CodegenApplication, Target])(
       implicit F: FrameworkTerms[ScalaLanguage, CodegenApplication],

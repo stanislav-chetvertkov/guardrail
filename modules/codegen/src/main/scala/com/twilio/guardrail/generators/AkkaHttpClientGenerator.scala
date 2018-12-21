@@ -3,7 +3,7 @@ package generators
 
 import java.util.Locale
 
-import _root_.io.swagger.models._
+import _root_.io.swagger.v3.oas.models._
 import cats.arrow.FunctionK
 import cats.data.NonEmptyList
 import cats.syntax.flatMap._
@@ -14,6 +14,7 @@ import com.twilio.guardrail.languages.ScalaLanguage
 
 import scala.collection.JavaConverters._
 import scala.meta._
+import _root_.io.swagger.v3.oas.models.PathItem.HttpMethod
 
 object AkkaHttpClientGenerator {
 
@@ -249,8 +250,9 @@ object AkkaHttpClientGenerator {
           // Placeholder for when more functions get logging
           _ <- Target.pure(())
 
-          produces = Option(operation.getProduces).fold(List.empty[String])(_.asScala.toList)
-          consumes = Option(operation.getConsumes).fold(List.empty[String])(_.asScala.toList)
+          produces = Option(operation.getResponses.values().asScala.toList.flatMap(apiResponse => apiResponse.getContent.keySet().asScala.toList))
+            .getOrElse(Seq.empty)
+          consumes = Option(operation.getRequestBody.getContent.keySet()).fold(List.empty[String])(_.asScala.toList)
 
           // Get the response type
           responseTypeRef = SwaggerUtil.getResponseType[ScalaLanguage](httpMethod, responses, t"IgnoredEntity").tpe
