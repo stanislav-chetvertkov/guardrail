@@ -60,8 +60,8 @@ object SwaggerGenerator {
 //      case GetBodyParameterSchema(parameter) =>
 //        Target.fromOption(Option(parameter.getSchema()), "Schema not specified")
 
-//      case GetHeaderParameterType(parameter) =>
-//        Target.fromOption(Option(parameter.getType()), s"Missing type")
+      case GetHeaderParameterType(parameter) =>
+        Target.fromOption(Option(parameter.getSchema.getType()), s"Missing type")
 
 //      case GetPathParameterType(parameter) =>
 //        Target.fromOption(Option(parameter.getType()), s"Missing type")

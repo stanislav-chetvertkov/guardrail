@@ -140,14 +140,9 @@ object SwaggerUtil {
       import Sc._
       import Sw._
       model match {
-        case ref: RefModel =>
-          for {
-            ref <- getSimpleRef(ref)
-          } yield Deferred[L](ref)
-
         case ref: Schema[_] if Option(ref.get$ref()).isDefined =>
           for {
-            ref <- Target.fromOption(Option(ref.get$ref()), "Unspecified $ref") //fixme change to simple ref
+            ref <- getSimpleRef(ref) //fixme
           } yield Deferred[L](ref)
 
         case arr: ArraySchema =>
@@ -162,7 +157,7 @@ object SwaggerUtil {
               case x: DeferredMap[L]   => embedArray(x)
             }
           } yield res
-        case impl: ModelImpl =>
+        case impl: Schema[_] =>
           for {
             tpeName <- getType(impl)
             tpe     <- typeName[L, F](tpeName, Option(impl.getFormat()), ScalaType(impl))
@@ -171,16 +166,15 @@ object SwaggerUtil {
     }
   }
 
-  def modelMetaType[L <: LA, F[_]]: ModelMetaTypePartiallyApplied[L, F] =
-    new ModelMetaTypePartiallyApplied[L, F]()
+  def modelMetaType[L <: LA, F[_]]: ModelMetaTypePartiallyApplied[L, F] = new ModelMetaTypePartiallyApplied[L, F]()
 
   def extractConcreteTypes[L <: LA, F[_]](
-      definitions: List[(String, Model)]
+      definitions: List[(String, Schema[_])]
   )(implicit Sc: ScalaTerms[L, F], Sw: SwaggerTerms[L, F], F: FrameworkTerms[L, F]): Free[F, List[PropMeta[L]]] = {
     import Sc._
     for {
       entries <- definitions.traverse[Free[F, ?], (String, SwaggerUtil.ResolvedType[L])] {
-        case (clsName, impl: ModelImpl) if (Option(impl.getProperties()).isDefined || Option(impl.getEnum()).isDefined) =>
+        case (clsName, impl: Schema[_]) if (Option(impl.getProperties()).isDefined || Option(impl.getEnum()).isDefined) =>
           pureTypeName(clsName).flatMap(widenTypeName).map(x => (clsName, SwaggerUtil.Resolved[L](x, None, None): SwaggerUtil.ResolvedType[L]))
         case (clsName, comp: ComposedSchema) =>
           for {
@@ -290,10 +284,10 @@ object SwaggerUtil {
         typeName[L, F]("string", Some("date-time"), ScalaType(d)).map(Resolved[L](_, None, None))
 
       case i: IntegerSchema =>
-        Target.pure(Resolved(typeName("integer", Some(i.getFormat), ScalaType(i)), None, Default(i).extract[Int].map(Lit.Int(_))))
+        typeName[L, F]("integer", Some(i.getFormat), ScalaType(i)).map(Resolved[L](_, None, None))
 
       case d: NumberSchema =>
-        Target.pure(Resolved(typeName("number", Some(d.getType), ScalaType(d)), None, Default(d).extract[Double].map(Lit.Double(_))))
+        typeName[L, F]("number", Some(d.getFormat), ScalaType(d)).map(Resolved[L](_, None, None))
 
       case x =>
         fallbackPropertyTypeHandler(x).map(Resolved[L](_, None, None))

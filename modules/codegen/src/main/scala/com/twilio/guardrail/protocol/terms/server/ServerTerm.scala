@@ -1,9 +1,9 @@
 package com.twilio.guardrail.protocol.terms.server
 
-import com.twilio.guardrail.{RenderedRoutes, StrictProtocolElems, TracingField}
+import com.twilio.guardrail.{ RenderedRoutes, StrictProtocolElems, TracingField }
 import com.twilio.guardrail.terms.RouteMeta
 import com.twilio.guardrail.languages.LA
-import com.twilio.guardrail.generators.{Responses, ScalaParameters}
+import com.twilio.guardrail.generators.{ Responses, ScalaParameters }
 import io.swagger.v3.oas.models.Operation
 
 sealed trait ServerTerm[L <: LA, T]

@@ -1,5 +1,7 @@
 package com.twilio.guardrail
 
+import java.net.URI
+
 import _root_.io.swagger.v3.oas.models.OpenAPI
 import cats.data.NonEmptyList
 import cats.free.Free
@@ -13,14 +15,40 @@ import com.twilio.guardrail.protocol.terms.server.ServerTerms
 import com.twilio.guardrail.terms.{ CoreTerms, ScalaTerms, SwaggerTerms }
 import java.nio.file.{ Path, Paths }
 import java.util.Locale
+
 import scala.collection.JavaConverters._
 import scala.io.AnsiColor
 import scala.meta._
 
 object Common {
+
+  // fixme: temporary means of using open-api v3 model without introducing too many changes at the same time
+  // fixme: remove
+  object OpenApiConversion {
+    def schemes(serversUrls: List[String]): List[String] = //fixme: toUpperCase ???
+      serversUrls.map(s => new URI(s)).map(_.getScheme)
+
+    def host(serversUrls: List[String]): Option[String] =
+      for {
+        list <- Option(serversUrls).filter(_.nonEmpty)
+        head <- list.headOption
+      } yield {
+        new URI(head).getHost
+      }
+
+    def basePath(serversUrls: List[String]): Option[String] =
+      for {
+        list <- Option(serversUrls).filter(_.nonEmpty)
+        head <- list.headOption
+      } yield {
+        new URI(head).getPath
+      }
+
+  }
+
   def writePackage[L <: LA, F[_]](kind: CodegenTarget,
                                   context: Context,
-                                  swagger: Swagger,
+                                  swagger: OpenAPI,
                                   outputPath: Path,
                                   pkgName: List[String],
                                   dtoPackage: List[String],
@@ -76,10 +104,12 @@ object Common {
         extraTypes
       )
 
-      schemes = Option(swagger.getSchemes)
-        .fold(List.empty[String])(_.asScala.to[List].map(_.toValue))
-      host     = Option(swagger.getHost)
-      basePath = Option(swagger.getBasePath)
+      serverUrls = swagger.getServers.asScala.toList.map(_.getUrl)
+
+      schemes  = OpenApiConversion.schemes(serverUrls)
+      host     = OpenApiConversion.host(serverUrls)
+      basePath = OpenApiConversion.basePath(serverUrls)
+
       paths = Option(swagger.getPaths)
         .map(_.asScala.toList)
         .getOrElse(List.empty)

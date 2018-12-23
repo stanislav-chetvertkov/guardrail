@@ -48,7 +48,7 @@ case class GetSimpleRef[L <: LA](ref: Schema[_])                                
 case class GetSimpleRefP[L <: LA](ref: Schema[_])                                          extends SwaggerTerm[L, String]
 case class GetItems[L <: LA](arr: ArraySchema)                                             extends SwaggerTerm[L, Schema[_]]
 case class GetItemsP[L <: LA](arr: ArraySchema)                                            extends SwaggerTerm[L, Schema[_]] //fixme remove
-case class GetType[L <: LA](model: ObjectSchema)                                           extends SwaggerTerm[L, String]
+case class GetType[L <: LA](model: Schema[_])                                              extends SwaggerTerm[L, String]
 case class FallbackPropertyTypeHandler[L <: LA](prop: Schema[_])                           extends SwaggerTerm[L, L#Type]
 case class ResolveType[L <: LA](name: String, protocolElems: List[StrictProtocolElems[L]]) extends SwaggerTerm[L, StrictProtocolElems[L]]
 case class FallbackResolveElems[L <: LA](lazyElems: List[LazyProtocolElems[L]])            extends SwaggerTerm[L, List[StrictProtocolElems[L]]]

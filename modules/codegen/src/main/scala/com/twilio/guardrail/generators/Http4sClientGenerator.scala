@@ -19,6 +19,8 @@ import scala.collection.JavaConverters._
 import scala.meta._
 import _root_.io.swagger.v3.oas.models.PathItem.HttpMethod
 
+import scala.util.Try
+
 object Http4sClientGenerator {
 
   object ClientTermInterp extends FunctionK[ClientTerm[ScalaLanguage, ?], Target] {
@@ -262,8 +264,8 @@ object Http4sClientGenerator {
           // Placeholder for when more functions get logging
           _ <- Target.pure(())
 
-          consumes = Option(operation.getRequestBody.getContent.keySet()).fold(Seq.empty[String])(_.asScala.toList)
-          produces = Option(operation.getResponses.values().asScala.toList.flatMap(apiResponse => apiResponse.getContent.keySet().asScala.toList))
+          consumes = Try(operation.getRequestBody.getContent.keySet()).toOption.fold(Seq.empty[String])(_.asScala.toList)
+          produces = Try(operation.getResponses.values().asScala.toList.flatMap(apiResponse => apiResponse.getContent.keySet().asScala.toList)).toOption
             .getOrElse(Seq.empty)
 
           headerArgs = parameters.headerParams

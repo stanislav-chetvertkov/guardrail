@@ -28,7 +28,11 @@ object CirceProtocolGenerator {
   object EnumProtocolTermInterp extends (EnumProtocolTerm[ScalaLanguage, ?] ~> Target) {
     def apply[T](term: EnumProtocolTerm[ScalaLanguage, T]): Target[T] = term match {
       case ExtractEnum(swagger) =>
-        Target.pure(Either.fromOption(Option(swagger.getEnum()).map(_.asScala.to[List]), "Model has no enumerations"))
+        Target.pure(
+          Either.fromOption(Option(swagger.getEnum())
+                              .map(_.asScala.map(_.asInstanceOf[String]).to[List]),
+                            "Model has no enumerations")
+        ) //fixme
 
       case RenderMembers(clsName, elems) =>
         Target.pure(q"""
@@ -110,21 +114,17 @@ object CirceProtocolGenerator {
           argName = if (needCamelSnakeConversion) toCamelCase(name) else name
 
           defaultValue = property match {
-            case _: MapProperty =>
+            case _: MapSchema =>
               Option(q"Map.empty")
-            case _: ArrayProperty =>
+            case _: ArraySchema =>
               Option(q"IndexedSeq.empty")
-            case p: BooleanProperty =>
+            case p: BooleanSchema =>
               Default(p).extract[Boolean].map(Lit.Boolean(_))
-            case p: DoubleProperty =>
-              Default(p).extract[Double].map(Lit.Double(_))
-            case p: FloatProperty =>
-              Default(p).extract[Float].map(Lit.Float(_))
-            case p: IntegerProperty =>
-              Default(p).extract[Int].map(Lit.Int(_))
-            case p: LongProperty =>
-              Default(p).extract[Long].map(Lit.Long(_))
-            case p: StringProperty =>
+            case p: NumberSchema =>
+              Default(p).extract[Double].map(Lit.Double(_)) //fixme shouldn't be double
+            case p: IntegerSchema =>
+              Default(p).extract[Int].map(Lit.Int(_)) //fixme
+            case p: StringSchema =>
               Default(p).extract[String].map(Lit.String(_))
             case _ =>
               None
@@ -132,10 +132,10 @@ object CirceProtocolGenerator {
 
           readOnlyKey = Option(name).filter(_ => Option(property.getReadOnly).contains(true))
           emptyToNull = (property match {
-            case d: DateProperty      => ScalaEmptyIsNull(d)
-            case dt: DateTimeProperty => ScalaEmptyIsNull(dt)
-            case s: StringProperty    => ScalaEmptyIsNull(s)
-            case _                    => None
+            case d: DateSchema      => ScalaEmptyIsNull(d)
+            case dt: DateTimeSchema => ScalaEmptyIsNull(dt)
+            case s: StringSchema    => ScalaEmptyIsNull(s)
+            case _                  => None
           }).getOrElse(EmptyIsEmpty)
 
           (tpe, classDep) = meta match {
@@ -356,14 +356,21 @@ object CirceProtocolGenerator {
   }
 
   object PolyProtocolTermInterp extends (PolyProtocolTerm[ScalaLanguage, ?] ~> Target) {
+
     override def apply[A](fa: PolyProtocolTerm[ScalaLanguage, A]): Target[A] = fa match {
+
       case ExtractSuperClass(swagger, definitions) =>
-        def allParents(model: Schema[_]): List[(String, Schema[_], List[Schema[_]])] =
+        def allParents(model: Schema[_]): List[(String, Schema[_], List[Schema[_]])] = // this code is ridiculous
           (model match {
             case elem: ComposedSchema =>
               definitions.collectFirst {
-                case (clsName, e) if elem.getAllOf.asScala.headOption.exists(_.get$ref() == clsName) =>
-                  (clsName, e, elem.getAllOf.asScala.tail.toList)
+                case (clsName, e) if elem.getAllOf.asScala.exists(_.get$ref().endsWith(clsName)) =>
+                  (clsName,
+                   e,
+                   elem.getAllOf.asScala
+                     .filter(s => Option(s.get$ref()).isDefined)
+                     .tail
+                     .toList)
               }
             case _ => None
           }) match {

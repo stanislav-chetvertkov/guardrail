@@ -1,4 +1,5 @@
 package support
+import com.twilio.guardrail.Common.OpenApiConversion
 import io.swagger.v3.parser.OpenAPIV3Parser
 
 trait SwaggerSpecRunner {
@@ -15,9 +16,9 @@ trait SwaggerSpecRunner {
   def runSwaggerSpec(
       spec: String
   ): (Context, FunctionK[CodegenApplication, Target]) => (ProtocolDefinitions[ScalaLanguage], Clients[ScalaLanguage], Servers[ScalaLanguage]) =
-    runSwagger(new OpenAPIV3Parser().parse(spec)) _
+    runSwagger(new OpenAPIV3Parser().read(spec)) _
 
-  def runSwagger(swagger: Swagger)(context: Context, framework: FunctionK[CodegenApplication, Target])(
+  def runSwagger(swagger: OpenAPI)(context: Context, framework: FunctionK[CodegenApplication, Target])(
       implicit F: FrameworkTerms[ScalaLanguage, CodegenApplication],
       Sc: ScalaTerms[ScalaLanguage, CodegenApplication],
       Sw: SwaggerTerms[ScalaLanguage, CodegenApplication]
@@ -29,10 +30,12 @@ trait SwaggerSpecRunner {
       protocol <- ProtocolGenerator.fromSwagger[ScalaLanguage, CodegenApplication](swagger)
       definitions = protocol.elems
 
-      schemes = Option(swagger.getSchemes)
-        .fold(List.empty[String])(_.asScala.to[List].map(_.toValue))
-      host     = Option(swagger.getHost)
-      basePath = Option(swagger.getBasePath)
+      serverUrls = swagger.getServers.asScala.toList.map(_.getUrl)
+
+      schemes  = OpenApiConversion.schemes(serverUrls)
+      host     = OpenApiConversion.host(serverUrls)
+      basePath = OpenApiConversion.basePath(serverUrls)
+
       paths = Option(swagger.getPaths)
         .map(_.asScala.toList)
         .getOrElse(List.empty)

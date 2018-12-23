@@ -1,6 +1,6 @@
 package com.twilio.guardrail.protocol.terms.protocol
 
-import io.swagger.v3.oas.models.media.Schema
+import io.swagger.v3.oas.models.media.{ Schema, StringSchema }
 import com.twilio.guardrail.languages.LA
 
 sealed trait EnumProtocolTerm[L <: LA, T]

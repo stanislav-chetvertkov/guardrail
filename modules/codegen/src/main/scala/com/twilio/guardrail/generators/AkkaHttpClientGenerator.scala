@@ -16,6 +16,8 @@ import scala.collection.JavaConverters._
 import scala.meta._
 import _root_.io.swagger.v3.oas.models.PathItem.HttpMethod
 
+import scala.util.Try
+
 object AkkaHttpClientGenerator {
 
   object ClientTermInterp extends FunctionK[ClientTerm[ScalaLanguage, ?], Target] {
@@ -250,9 +252,15 @@ object AkkaHttpClientGenerator {
           // Placeholder for when more functions get logging
           _ <- Target.pure(())
 
-          produces = Option(operation.getResponses.values().asScala.toList.flatMap(apiResponse => apiResponse.getContent.keySet().asScala.toList))
-            .getOrElse(Seq.empty)
-          consumes = Option(operation.getRequestBody.getContent.keySet()).fold(List.empty[String])(_.asScala.toList)
+          produces = {
+            val tr = Try(operation.getResponses.values().asScala.toList.flatMap(apiResponse => apiResponse.getContent.keySet().asScala.toList))
+            if (tr.isFailure) {
+              print(tr)
+            }
+            tr.toOption
+              .getOrElse(Seq.empty)
+          }
+          consumes = Try(operation.getRequestBody.getContent.keySet()).toOption.fold(List.empty[String])(_.asScala.toList)
 
           // Get the response type
           responseTypeRef = SwaggerUtil.getResponseType[ScalaLanguage](httpMethod, responses, t"IgnoredEntity").tpe

@@ -29,15 +29,14 @@ object ServerGenerator {
   def formatClassName(str: String): String   = s"${str.capitalize}Resource"
   def formatHandlerName(str: String): String = s"${str.capitalize}Handler"
 
-  def fromSwagger[L <: LA, F[_]](context: Context, swagger: Swagger, frameworkImports: List[L#Import])(
+  def fromSwagger[L <: LA, F[_]](context: Context, swagger: OpenAPI, frameworkImports: List[L#Import])(
       protocolElems: List[StrictProtocolElems[L]]
   )(implicit Fw: FrameworkTerms[L, F], Sc: ScalaTerms[L, F], S: ServerTerms[L, F], Sw: SwaggerTerms[L, F]): Free[F, Servers[L]] = {
     import S._
     import Sw._
 
-    val paths: List[(String, Path)] =
-      Option(swagger.getPaths).map(_.asScala.toList).getOrElse(List.empty)
-    val basePath: Option[String] = Option(swagger.getBasePath)
+    val paths: List[(String, PathItem)] = Option(swagger.getPaths).map(_.asScala.toList).getOrElse(List.empty)
+    val basePath: Option[String]        = swagger.getServers.asScala.headOption.map(_.getUrl) //fixme shouldn't be limited to the first path
 
     for {
       routes <- extractOperations(paths)

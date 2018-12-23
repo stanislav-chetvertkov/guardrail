@@ -12,8 +12,13 @@ import com.twilio.guardrail.generators.syntax.scala._
 import com.twilio.guardrail.languages.ScalaLanguage
 import com.twilio.guardrail.protocol.terms.server._
 import com.twilio.guardrail.terms.RouteMeta
+
 import scala.collection.JavaConverters._
 import scala.meta.{ Term, _ }
+import _root_.io.swagger.v3.oas.models.PathItem.HttpMethod
+
+import scala.collection.immutable
+import scala.util.Try
 
 object Http4sServerGenerator {
   object ServerTermInterp extends FunctionK[ServerTerm[ScalaLanguage, ?], Target] {
@@ -509,8 +514,18 @@ object Http4sServerGenerator {
             )
           )
         )
-        val consumes = Option(operation.getConsumes).fold(Seq.empty[String])(_.asScala)
-        val produces = Option(operation.getProduces).fold(Seq.empty[String])(_.asScala)
+//        val _ = {
+//          val x = Try(operation.getRequestBody.getContent.keySet())
+//          if (x.isFailure) {
+//            println("HOHOHOH")
+//            println(operation)
+//          }
+//        }
+
+        val consumes = Try(operation.getRequestBody.getContent.keySet()).toOption.fold(Seq.empty[String])(_.asScala.toList)
+        val produces: immutable.Seq[String] =
+          Option(operation.getResponses.values().asScala.toList.flatMap(apiResponse => apiResponse.getContent.keySet().asScala.toList))
+            .getOrElse(List.empty)
         Some(
           RenderedRoute(
             fullRoute,
