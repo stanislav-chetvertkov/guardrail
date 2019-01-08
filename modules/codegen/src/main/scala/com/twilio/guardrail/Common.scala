@@ -25,12 +25,12 @@ object Common {
   // fixme: temporary means of using open-api v3 model without introducing too many changes at the same time
   // fixme: remove
   object OpenApiConversion {
-    def schemes(serversUrls: List[String]): List[String] = //fixme: toUpperCase ???
-      serversUrls.map(s => new URI(s)).map(_.getScheme)
+    def schemes(serversUrls: List[String]): List[String] =
+      serversUrls.filter(_ != "/").map(s => new URI(s)).map(_.getScheme)
 
     def host(serversUrls: List[String]): Option[String] =
       for {
-        list <- Option(serversUrls).filter(_.nonEmpty)
+        list <- Option(serversUrls.filter(_ != "/")).filter(_.nonEmpty)
         head <- list.headOption
       } yield {
         new URI(head).getHost
@@ -38,7 +38,7 @@ object Common {
 
     def basePath(serversUrls: List[String]): Option[String] =
       for {
-        list <- Option(serversUrls).filter(_.nonEmpty)
+        list <- Option(serversUrls.filter(_ != "/")).filter(_.nonEmpty)
         head <- list.headOption
       } yield {
         new URI(head).getPath

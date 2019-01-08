@@ -270,8 +270,7 @@ object SwaggerUtil {
         } yield res
       case o: ObjectSchema =>
         objectType(None).map(Resolved[L](_, None, None)) // TODO: o.getProperties
-//      case r: RefProperty =>
-//        getSimpleRefP(r).map(Deferred[L](_))
+
       case b: BooleanSchema =>
         (typeName[L, F]("boolean", None, ScalaType(b)), Default(b).extract[Boolean].traverse(litBoolean(_))).mapN(Resolved[L](_, None, _))
       case s: StringSchema =>
@@ -288,6 +287,9 @@ object SwaggerUtil {
 
       case d: NumberSchema =>
         typeName[L, F]("number", Some(d.getFormat), ScalaType(d)).map(Resolved[L](_, None, None))
+
+      case ref: Schema[_] if Option(ref.get$ref()).isDefined =>
+        getSimpleRef(ref).map(Deferred[L])
 
       case x =>
         fallbackPropertyTypeHandler(x).map(Resolved[L](_, None, None))

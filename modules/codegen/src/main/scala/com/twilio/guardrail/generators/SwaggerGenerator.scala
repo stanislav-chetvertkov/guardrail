@@ -58,28 +58,28 @@ object SwaggerGenerator {
         Target.fromOption(Option(parameter.getName()), "Parameter missing \"name\"")
 
 //      case GetBodyParameterSchema(parameter) =>
-//        Target.fromOption(Option(parameter.getSchema()), "Schema not specified")
+//        Target.fromOption(Option(parameter.getSchema().getType()), "Schema not specified")
 
       case GetHeaderParameterType(parameter) =>
         Target.fromOption(Option(parameter.getSchema.getType()), s"Missing type")
 
-//      case GetPathParameterType(parameter) =>
-//        Target.fromOption(Option(parameter.getType()), s"Missing type")
+      case GetPathParameterType(parameter) =>
+        Target.fromOption(Option(parameter.getSchema.getType()), s"Missing type")
 
-//      case GetQueryParameterType(parameter) =>
-//        Target.fromOption(Option(parameter.getType()), s"Missing type")
+      case GetQueryParameterType(parameter) =>
+        Target.fromOption(Option(parameter.getSchema.getType()), s"Missing type")
 
-//      case GetCookieParameterType(parameter) =>
-//        Target.fromOption(Option(parameter.getType()), s"Missing type")
+      case GetCookieParameterType(parameter) =>
+        Target.fromOption(Option(parameter.getSchema.getType()), s"Missing type")
 
-//      case GetFormParameterType(parameter) =>
-//        Target.fromOption(Option(parameter.getType()), s"Missing type")
+      case GetFormParameterType(parameter) =>
+        Target.fromOption(Option(parameter.getSchema.getType()), s"Missing type")
 
-//      case GetSerializableParameterType(parameter) =>
-//        Target.fromOption(Option(parameter.getType()), s"Missing type")
+      case GetSerializableParameterType(parameter) =>
+        Target.fromOption(Option(parameter.getSchema.getType()), s"Missing type")
 
-//      case GetRefParameterRef(parameter) =>
-//        Target.fromOption(Option(parameter.()), "$ref not defined")
+      case GetRefParameterRef(parameter) =>
+        Target.fromOption(Option(parameter.get$ref()), "$ref not defined")
 
       case FallbackParameterHandler(parameter) =>
         Target.raiseError(s"Unsure how to handle ${parameter}")
@@ -94,7 +94,10 @@ object SwaggerGenerator {
         Target.fromOption(Option(operation.getResponses).map(_.asScala.toMap), s"No responses defined for ${operationId}")
 
       case GetSimpleRef(ref) =>
-        Target.fromOption(Option(ref.get$ref()), "Unspecified $ref")
+        Target.fromOption(
+          Option(ref.get$ref()).flatMap(_.split("/").lastOption),
+          "Unspecified $ref"
+        )
 
       case GetSimpleRefP(ref) =>
         Target.fromOption(Option(ref.get$ref()), "Unspecified $ref")
@@ -113,7 +116,7 @@ object SwaggerGenerator {
         )
 
       case FallbackPropertyTypeHandler(prop) =>
-        Target.raiseError(s"Unsupported swagger class ${prop.getClass().getName()} (${prop})")
+        Target.raiseError(s"Unsupported swagger class ${prop.getClass.getName} (${prop})")
 
       case ResolveType(name, protocolElems) =>
         Target.fromOption(protocolElems.find(_.name == name), s"Unable to resolve ${name}")

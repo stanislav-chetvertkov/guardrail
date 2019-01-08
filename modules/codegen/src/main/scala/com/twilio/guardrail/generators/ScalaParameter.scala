@@ -89,14 +89,14 @@ object ScalaParameter {
         case x: Parameter if x.getIn == "header" =>
           getHeaderParameterType(x).flatMap(
             tpeName =>
-              (SwaggerUtil.typeName[L, F](tpeName, Option(x.getSchema.getType()), ScalaType(x)), getDefault(x)).mapN(SwaggerUtil.Resolved[L](_, None, _))
+              (SwaggerUtil.typeName[L, F](tpeName, Option(x.getSchema.getFormat()), ScalaType(x)), getDefault(x)).mapN(SwaggerUtil.Resolved[L](_, None, _))
           )
 
         case x: Parameter if x.getIn == "path" =>
           getPathParameterType(x)
             .flatMap(
               tpeName =>
-                (SwaggerUtil.typeName[L, F](tpeName, Option(x.getSchema.getType()), ScalaType(x)), getDefault(x)).mapN(SwaggerUtil.Resolved[L](_, None, _))
+                (SwaggerUtil.typeName[L, F](tpeName, Option(x.getSchema.getFormat()), ScalaType(x)), getDefault(x)).mapN(SwaggerUtil.Resolved[L](_, None, _))
             )
 
         case x: Parameter if x.getIn == "query" =>
@@ -119,9 +119,9 @@ object ScalaParameter {
 //              tpeName => (SwaggerUtil.typeName[L, F](tpeName, Option(x.getFormat()), ScalaType(x)), getDefault(x)).mapN(SwaggerUtil.Resolved[L](_, None, _))
 //            )
 
-//        case r: RefParameter =>
-//          getRefParameterRef(r)
-//            .map(SwaggerUtil.Deferred(_): SwaggerUtil.ResolvedType[L])
+        case r: Parameter if Option(r.get$ref()).isDefined =>
+          getRefParameterRef(r)
+            .map(SwaggerUtil.Deferred(_): SwaggerUtil.ResolvedType[L])
 
         case x =>
           fallbackParameterHandler(x)

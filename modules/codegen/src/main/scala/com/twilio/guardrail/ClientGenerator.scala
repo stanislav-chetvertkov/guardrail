@@ -49,7 +49,7 @@ object ClientGenerator {
 
           for {
             responseClientPair <- routes.traverse {
-              case route @ RouteMeta(path, method, operation) =>
+              case route @ RouteMeta(_, _, operation) =>
                 for {
                   operationId         <- getOperationId(operation)
                   responses           <- Http4sHelper.getResponses[L, F](operationId, operation, protocolElems)
