@@ -113,11 +113,12 @@ object ScalaParameter {
                 (SwaggerUtil.typeName[L, F](tpeName, Option(x.getSchema.getFormat()), ScalaType(x)), getDefault(x)).mapN(SwaggerUtil.Resolved[L](_, None, _))
             )
 
-//        case x: FormParameter =>
-//          getFormParameterType(x)
-//            .flatMap(
-//              tpeName => (SwaggerUtil.typeName[L, F](tpeName, Option(x.getFormat()), ScalaType(x)), getDefault(x)).mapN(SwaggerUtil.Resolved[L](_, None, _))
-//            )
+        case x: Parameter if x.getIn == "formData" =>
+          getFormParameterType(x)
+            .flatMap(
+              tpeName =>
+                (SwaggerUtil.typeName[L, F](tpeName, Option(x.getSchema.getFormat()), ScalaType(x)), getDefault(x)).mapN(SwaggerUtil.Resolved[L](_, None, _))
+            )
 
         case r: Parameter if Option(r.get$ref()).isDefined =>
           getRefParameterRef(r)
@@ -129,7 +130,10 @@ object ScalaParameter {
     }
 
     for {
-      meta     <- paramMeta(parameter)
+      meta <- paramMeta(parameter)
+      _ = if (parameter.getName == "file") {
+        print(meta)
+      }
       resolved <- SwaggerUtil.ResolvedType.resolve[L, F](meta, protocolElems)
       SwaggerUtil.Resolved(paramType, _, baseDefaultValue) = resolved
 
@@ -165,8 +169,10 @@ object ScalaParameter {
       paramName <- pureTermName(toCamelCase(name))
       param     <- pureMethodParameter(paramName, declType, defaultValue)
 
-      ftpe       <- fileType(None)
-      isFileType <- typesEqual(paramType, ftpe)
+      ftpe <- fileType(None)
+      isFileType <- {
+        typesEqual(paramType, ftpe)
+      }
     } yield {
       new ScalaParameter[L](Option(parameter.getIn),
                             param,

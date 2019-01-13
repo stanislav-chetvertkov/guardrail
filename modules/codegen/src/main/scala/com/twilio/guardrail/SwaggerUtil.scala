@@ -233,9 +233,13 @@ object SwaggerUtil {
             case ("integer", fmt)              => integerType(fmt).map(log(fmt, _))
             case ("boolean", fmt)              => booleanType(fmt).map(log(fmt, _))
             case ("array", fmt)                => arrayType(fmt).map(log(fmt, _))
-            case ("file", fmt)                 => fileType(fmt).map(log(fmt, _))
-            case ("object", fmt)               => objectType(fmt).map(log(fmt, _))
-            case (tpe, fmt)                    => fallbackType(tpe, fmt)
+            case ("file", fmt) =>
+              fileType(fmt).map(log(fmt, _))
+            case ("binary", _) =>
+              fileType(None).map(log(None, _))
+            case ("object", fmt) => objectType(fmt).map(log(fmt, _))
+            case (tpe, fmt) =>
+              fallbackType(tpe, fmt)
           }
         })(Free.pure(_))
       )
@@ -260,7 +264,7 @@ object SwaggerUtil {
         } yield res
       case m: MapSchema =>
         for {
-          rec <- propMeta[L, F](m.getProperties.values().asScala.head) //fixme
+          rec <- propMeta[L, F](m.getAdditionalProperties.asInstanceOf[Schema[_]]) //fixme could be boolean
           res <- rec match {
             case Resolved(inner, dep, _) => liftMapType(inner).map(Resolved[L](_, dep, None))
             case x: DeferredMap[L]       => embedMap(x)

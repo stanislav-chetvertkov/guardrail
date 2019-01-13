@@ -1,6 +1,8 @@
 package com.twilio.guardrail
 package terms
 
+import java.util
+
 import cats.MonadError
 import cats.free.Free
 import cats.implicits._
@@ -12,21 +14,57 @@ import com.twilio.guardrail.terms.framework.FrameworkTerms
 import io.swagger.v3.oas.models.{ Operation, PathItem }
 import io.swagger.v3.oas.models.PathItem.HttpMethod
 import io.swagger.v3.oas.models.media.{ ArraySchema, ObjectSchema, Schema }
-import io.swagger.v3.oas.models.parameters.Parameter
+import io.swagger.v3.oas.models.parameters.{ Parameter, RequestBody }
 import io.swagger.v3.oas.models.responses.ApiResponse
 
+import scala.util.Try
+
 case class RouteMeta(path: String, method: HttpMethod, operation: Operation) {
-  private val parameters = {
-    Option(operation.getParameters)
+
+  /** Temporary hack method to adapt to open-api v3 spec */
+  private def extractParamsFromRequestBody(requestBody: RequestBody, contentType: String) =
+    Try {
+      requestBody.getContent.get(contentType).getSchema.getProperties.asScala.toList.map {
+        case (name, schema) =>
+          val p = new Parameter
+
+          if (schema.getFormat == "binary") {
+            schema.setType("file")
+            schema.setFormat(null)
+          }
+
+          p.setName(name)
+          p.setIn("formData")
+          p.setSchema(schema)
+          p.setExtensions(new util.HashMap[String, Object]())
+          p
+      }
+    }.toOption.getOrElse(List.empty)
+
+  private val parameters = { //option of list is a bad signature
+    val p = Option(operation.getParameters)
       .map(_.asScala.toList)
+
+    //fixme can have formData parameters defined with empty operation.getParameters
+    //fixme try using monoid of option/list
+    p.map(
+      _ ++
+        extractParamsFromRequestBody(operation.getRequestBody, "multipart/form-data") ++
+        extractParamsFromRequestBody(operation.getRequestBody, "application/x-www-form-urlencoded")
+    )
   }
 
   def getParameters[L <: LA, F[_]](
       protocolElems: List[StrictProtocolElems[L]]
-  )(implicit Fw: FrameworkTerms[L, F], Sc: ScalaTerms[L, F], Sw: SwaggerTerms[L, F]): Free[F, ScalaParameters[L]] =
+  )(implicit Fw: FrameworkTerms[L, F], Sc: ScalaTerms[L, F], Sw: SwaggerTerms[L, F]): Free[F, ScalaParameters[L]] = {
+    if (operation.getOperationId == "uploadFile") {
+      print("here")
+    }
+
     parameters
       .fold(Free.pure[F, List[ScalaParameter[L]]](List.empty))(ScalaParameter.fromParameters(protocolElems))
       .map(new ScalaParameters[L](_))
+  }
 }
 
 sealed trait SwaggerTerm[L <: LA, T]

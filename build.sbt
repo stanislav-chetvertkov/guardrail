@@ -23,18 +23,14 @@ val scalatestVersion  = "3.0.5"
 
 mainClass in assembly := Some("com.twilio.guardrail.CLI")
 
-lazy val runExample: TaskKey[Unit] = taskKey[Unit]("Run with example args")
-// TODO: akka.NotUsed should exist in all generated sources, but there are no import verifying tests yet.
+lazy val runScalaExample: TaskKey[Unit] = taskKey[Unit]("Run scala generator with example args")
 fullRunTask(
-  runExample,
+  runScalaExample,
   Test,
   "com.twilio.guardrail.CLI",
   """
   --defaults --import support.PositiveLong
-  --client --specPath modules/sample/src/main/resources/polymorphism.yaml --outputPath modules/sample/src/main/scala --packageName issues.issue43.client.http4s --framework http4s
-  --client --specPath modules/sample/src/main/resources/polymorphism.yaml --outputPath modules/sample/src/main/scala --packageName issues.issue43.client.akkaHttp --framework akka-http
-  --server --specPath modules/sample/src/main/resources/polymorphism.yaml --outputPath modules/sample/src/main/scala --packageName issues.issue43.server.http4s --framework http4s
-  --server --specPath modules/sample/src/main/resources/polymorphism.yaml --outputPath modules/sample/src/main/scala --packageName issues.issue43.server.akkaHttp --framework akka-http
+  --client --specPath modules/sample/src/main/resources/petstore.json --outputPath modules/sample/src/main/scala --packageName clients.http4s --framework http4s
 """.replaceAllLiterally("\n", " ").split(' ').filter(_.nonEmpty): _*
 )
 
@@ -58,7 +54,7 @@ resetSample := {
   "git clean -fdx modules/sample/src modules/sample/target" !
 }
 
-addCommandAlias("example", "; resetSample ; runExample ; sample/test")
+addCommandAlias("example", "; resetSample ; runScalaExample ; sample/test")
 addCommandAlias("testSuite", "; codegen/test ; resetSample; runExample ; sample/test")
 
 addCommandAlias(
