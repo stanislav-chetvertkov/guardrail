@@ -1,5 +1,7 @@
 package com.twilio.guardrail
 
+import java.net.URL
+
 import _root_.io.swagger.v3.oas.models._
 import cats.Id
 import cats.data.NonEmptyList
@@ -11,6 +13,7 @@ import com.twilio.guardrail.languages.LA
 import com.twilio.guardrail.protocol.terms.server.{ ServerTerm, ServerTerms }
 import com.twilio.guardrail.terms.{ RouteMeta, ScalaTerms, SwaggerTerms }
 import com.twilio.guardrail.terms.framework.FrameworkTerms
+
 import scala.collection.JavaConverters._
 
 case class Servers[L <: LA](servers: List[Server[L]])
@@ -25,6 +28,7 @@ case class RenderedRoutes[L <: LA](
 
 object ServerGenerator {
   import NelShim._
+  import Common._
 
   def formatClassName(str: String): String   = s"${str.capitalize}Resource"
   def formatHandlerName(str: String): String = s"${str.capitalize}Handler"
@@ -35,8 +39,8 @@ object ServerGenerator {
     import S._
     import Sw._
 
-    val paths: List[(String, PathItem)] = Option(swagger.getPaths).map(_.asScala.toList).getOrElse(List.empty)
-    val basePath: Option[String]        = swagger.getServers.asScala.headOption.map(_.getUrl) //fixme shouldn't be limited to the first path
+    val paths: List[(String, PathItem)] = swagger.getPathsOpt()
+    val basePath: Option[String]        = swagger.basePath()
 
     for {
       routes <- extractOperations(paths)

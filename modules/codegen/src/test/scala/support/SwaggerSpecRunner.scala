@@ -1,5 +1,5 @@
 package support
-import com.twilio.guardrail.Common.OpenApiConversion
+import com.twilio.guardrail.Common._
 import io.swagger.v3.parser.OpenAPIV3Parser
 
 trait SwaggerSpecRunner {
@@ -30,15 +30,11 @@ trait SwaggerSpecRunner {
       protocol <- ProtocolGenerator.fromSwagger[ScalaLanguage, CodegenApplication](swagger)
       definitions = protocol.elems
 
-      serverUrls = swagger.getServers.asScala.toList.map(_.getUrl)
+      schemes  = swagger.schemes()
+      host     = swagger.host()
+      basePath = swagger.basePath()
+      paths = swagger.getPathsOpt()
 
-      schemes  = OpenApiConversion.schemes(serverUrls)
-      host     = OpenApiConversion.host(serverUrls)
-      basePath = OpenApiConversion.basePath(serverUrls)
-
-      paths = Option(swagger.getPaths)
-        .map(_.asScala.toList)
-        .getOrElse(List.empty)
       routes <- extractOperations(paths)
       classNamedRoutes <- routes
         .map(route => getClassName(route.operation).map(_ -> route))

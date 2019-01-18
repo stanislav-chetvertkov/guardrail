@@ -144,7 +144,9 @@ object ProtocolGenerator {
       needCamelSnakeConversion = props.forall { case (k, _) => couldBeSnakeCase(k) }
       params <- props.traverse({
         case (name, prop) =>
-          SwaggerUtil.propMeta[L, F](prop).flatMap(transformProperty(hierarchy.name, needCamelSnakeConversion, concreteTypes)(name, prop, _))
+          SwaggerUtil
+            .propMeta[L, F](prop)
+            .flatMap(transformProperty(hierarchy.name, needCamelSnakeConversion, concreteTypes)(name, prop, _, false)) //fixme: change to option???
       })
       terms = params.map(_.term)
       definition <- renderSealedTrait(hierarchy.name, terms, discriminator, parents)
@@ -192,7 +194,9 @@ object ProtocolGenerator {
           needCamelSnakeConversion = props.forall { case (k, _) => couldBeSnakeCase(k) }
           params <- props.traverse({
             case (name, prop) =>
-              SwaggerUtil.propMeta[L, F](prop).flatMap(transformProperty(clsName, needCamelSnakeConversion, concreteTypes)(name, prop, _))
+              SwaggerUtil
+                .propMeta[L, F](prop)
+                .flatMap(transformProperty(clsName, needCamelSnakeConversion, concreteTypes)(name, prop, _, false)) //fixme: change to option???
           })
           interfacesCls = interfaces.map(_.get$ref())
           tpe <- parseTypeName(clsName)
@@ -229,10 +233,16 @@ object ProtocolGenerator {
 
     for {
       props <- extractProperties(model)
+      _ = if (clsName == "User") { //
+        print("df")
+      }
+
+      requiredFields           = Option(model.getRequired).map(_.asScala.toList).getOrElse(List.empty)
       needCamelSnakeConversion = props.forall { case (k, _) => couldBeSnakeCase(k) }
       params <- props.traverse({
         case (name, prop) =>
-          SwaggerUtil.propMeta[L, F](prop).flatMap(transformProperty(clsName, needCamelSnakeConversion, concreteTypes)(name, prop, _))
+          val isRequired = requiredFields.contains(name)
+          SwaggerUtil.propMeta[L, F](prop).flatMap(transformProperty(clsName, needCamelSnakeConversion, concreteTypes)(name, prop, _, isRequired))
       })
       terms = params.map(_.term)
       defn <- renderDTOClass(clsName, terms, parents)

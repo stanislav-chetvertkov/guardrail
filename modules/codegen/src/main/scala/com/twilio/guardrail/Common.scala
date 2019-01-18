@@ -2,7 +2,7 @@ package com.twilio.guardrail
 
 import java.net.URI
 
-import _root_.io.swagger.v3.oas.models.OpenAPI
+import _root_.io.swagger.v3.oas.models.{ OpenAPI, PathItem }
 import cats.data.NonEmptyList
 import cats.free.Free
 import cats.implicits._
@@ -24,25 +24,33 @@ object Common {
 
   // fixme: temporary means of using open-api v3 model without introducing too many changes at the same time
   // fixme: remove
-  object OpenApiConversion {
-    def schemes(serversUrls: List[String]): List[String] =
-      serversUrls.filter(_ != "/").map(s => new URI(s)).map(_.getScheme)
 
-    def host(serversUrls: List[String]): Option[String] =
+  implicit class OpenApiExt(swagger: OpenAPI) {
+    val serverUrls: List[String] = swagger.getServers.asScala.toList.map(_.getUrl)
+
+    def schemes(): List[String] =
+      serverUrls.filter(_ != "/").map(s => new URI(s)).map(uri => Option(uri.getScheme)).collect { case Some(x) => x }
+
+    def host(): Option[String] =
       for {
-        list <- Option(serversUrls.filter(_ != "/")).filter(_.nonEmpty)
+        list <- Option(serverUrls.filter(_ != "/")).filter(_.nonEmpty)
         head <- list.headOption
       } yield {
-        new URI(head).getHost
+        new URI(head).getAuthority
       }
 
-    def basePath(serversUrls: List[String]): Option[String] =
-      for {
-        list <- Option(serversUrls.filter(_ != "/")).filter(_.nonEmpty)
+    def basePath(): Option[String] = {
+      val pathOpt = for {
+        list <- Option(serverUrls.filter(_ != "/")).filter(_.nonEmpty)
         head <- list.headOption
-      } yield {
-        new URI(head).getPath
-      }
+        path <- Option(new URI(head).getPath)
+      } yield path
+
+      pathOpt.filter(_ != "/")
+    }
+
+    def getPathsOpt(): List[(String, PathItem)] =
+      Option(swagger.getPaths).map(_.asScala.toList).getOrElse(List.empty)
 
   }
 
@@ -104,15 +112,11 @@ object Common {
         extraTypes
       )
 
-      serverUrls = swagger.getServers.asScala.toList.map(_.getUrl)
+      schemes  = swagger.schemes()
+      host     = swagger.host()
+      basePath = swagger.basePath()
 
-      schemes  = OpenApiConversion.schemes(serverUrls)
-      host     = OpenApiConversion.host(serverUrls)
-      basePath = OpenApiConversion.basePath(serverUrls)
-
-      paths = Option(swagger.getPaths)
-        .map(_.asScala.toList)
-        .getOrElse(List.empty)
+      paths = swagger.getPathsOpt()
       routes           <- extractOperations(paths)
       classNamedRoutes <- routes.traverse(route => getClassName(route.operation).map(_ -> route))
       groupedRoutes = classNamedRoutes

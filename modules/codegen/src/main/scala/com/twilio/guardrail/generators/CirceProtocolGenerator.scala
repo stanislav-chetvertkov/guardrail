@@ -104,7 +104,7 @@ object CirceProtocolGenerator {
           }).map(_.asScala.toList).toList.flatten
         )
 
-      case TransformProperty(clsName, name, property, meta, needCamelSnakeConversion, concreteTypes) =>
+      case TransformProperty(clsName, name, property, meta, needCamelSnakeConversion, concreteTypes, isRequired) =>
         def toCamelCase(s: String): String =
           "[_\\.]([a-z])".r.replaceAllIn(s, m => m.group(1).toUpperCase(Locale.US))
 
@@ -153,7 +153,7 @@ object CirceProtocolGenerator {
               (t"Map[String, ${Type.Name(tpeName)}]", Option.empty)
           }
 
-          (finalDeclType, finalDefaultValue) = Option(property.getRequired)
+          (finalDeclType, finalDefaultValue) = Option(isRequired) //fixme: option is not needed
             .filterNot(_ == false)
             .fold[(Type, Option[Term])](
               (t"Option[${tpe}]", Some(defaultValue.fold[Term](q"None")(t => q"Option($t)")))
