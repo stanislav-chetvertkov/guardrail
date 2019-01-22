@@ -29,11 +29,7 @@ object CirceProtocolGenerator {
   object EnumProtocolTermInterp extends (EnumProtocolTerm[ScalaLanguage, ?] ~> Target) {
     def apply[T](term: EnumProtocolTerm[ScalaLanguage, T]): Target[T] = term match {
       case ExtractEnum(swagger) =>
-        Target.pure(
-          Either.fromOption(Option(swagger.getEnum())
-                              .map(_.asScala.map(_.asInstanceOf[String]).to[List]),
-                            "Model has no enumerations")
-        ) //fixme
+        Target.pure(Either.fromOption(swagger.extractEnum(), "Model has no enumerations"))
 
       case RenderMembers(clsName, elems) =>
         Target.pure(q"""
@@ -115,20 +111,15 @@ object CirceProtocolGenerator {
           argName = if (needCamelSnakeConversion) toCamelCase(name) else name
 
           defaultValue = property match {
-            case _: MapSchema =>
-              Option(q"Map.empty")
-            case _: ArraySchema =>
-              Option(q"IndexedSeq.empty")
-            case p: BooleanSchema =>
-              Default(p).extract[Boolean].map(Lit.Boolean(_))
-            case p: NumberSchema =>
-              Default(p).extract[Double].map(Lit.Double(_)) //fixme shouldn't be double
-            case p: IntegerSchema =>
-              Default(p).extract[Int].map(Lit.Int(_)) //fixme
-            case p: StringSchema =>
-              Default(p).extract[String].map(Lit.String(_))
-            case _ =>
-              None
+            case _: MapSchema                               => Option(q"Map.empty")
+            case _: ArraySchema                             => Option(q"IndexedSeq.empty")
+            case p: BooleanSchema                           => Default(p).extract[Boolean].map(Lit.Boolean(_))
+            case p: NumberSchema if p.getFormat == "double" => Default(p).extract[Double].map(Lit.Double(_))
+            case p: NumberSchema if p.getFormat == "float"  => Default(p).extract[Float].map(Lit.Float(_))
+            case p: IntegerSchema if p.getFormat == "int32" => Default(p).extract[Int].map(Lit.Int(_))
+            case p: IntegerSchema if p.getFormat == "int64" => Default(p).extract[Long].map(Lit.Long(_))
+            case p: StringSchema                            => Default(p).extract[String].map(Lit.String(_))
+            case _                                          => None
           }
 
           readOnlyKey = Option(name).filter(_ => Option(property.getReadOnly).contains(true))
@@ -365,8 +356,11 @@ object CirceProtocolGenerator {
           (model match {
             case elem: ComposedSchema =>
               definitions.collectFirst {
-                case (clsName, e) if Option(elem.getAllOf).map(_.asScala).getOrElse(List.empty)
-                  .exists(s => s.getSimpleRef.contains(clsName)) => //fixme extract
+                case (clsName, e)
+                    if Option(elem.getAllOf)
+                      .map(_.asScala)
+                      .getOrElse(List.empty)
+                      .exists(s => s.getSimpleRef.contains(clsName)) => //fixme extract
 
                   (clsName,
                    e,

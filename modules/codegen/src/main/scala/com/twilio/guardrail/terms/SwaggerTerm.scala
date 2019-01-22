@@ -16,8 +16,6 @@ import io.swagger.v3.oas.models.PathItem.HttpMethod
 import io.swagger.v3.oas.models.media.{ ArraySchema, ObjectSchema, Schema }
 import io.swagger.v3.oas.models.parameters.{ Parameter, RequestBody }
 import io.swagger.v3.oas.models.responses.ApiResponse
-
-import scala.collection.immutable
 import scala.util.Try
 
 case class RouteMeta(path: String, method: HttpMethod, operation: Operation) {
@@ -115,7 +113,7 @@ case class GetResponses[L <: LA](operationId: String, operation: Operation)     
 case class GetSimpleRef[L <: LA](ref: Schema[_])                                           extends SwaggerTerm[L, String]
 case class GetSimpleRefP[L <: LA](ref: Schema[_])                                          extends SwaggerTerm[L, String]
 case class GetItems[L <: LA](arr: ArraySchema)                                             extends SwaggerTerm[L, Schema[_]]
-case class GetItemsP[L <: LA](arr: ArraySchema)                                            extends SwaggerTerm[L, Schema[_]] //fixme remove
+case class GetItemsP[L <: LA](arr: ArraySchema)                                            extends SwaggerTerm[L, Schema[_]]
 case class GetType[L <: LA](model: Schema[_])                                              extends SwaggerTerm[L, String]
 case class FallbackPropertyTypeHandler[L <: LA](prop: Schema[_])                           extends SwaggerTerm[L, L#Type]
 case class ResolveType[L <: LA](name: String, protocolElems: List[StrictProtocolElems[L]]) extends SwaggerTerm[L, StrictProtocolElems[L]]

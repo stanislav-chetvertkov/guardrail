@@ -26,13 +26,16 @@ import _root_.io.swagger.v3.oas.models.media.Schema
 object Common {
 
   // fixme: temporary means of using open-api v3 model without introducing too many changes at the same time
-  // fixme: remove
 
   implicit class MediaTypeExt(mt: MediaType) {
     def requiredFields(): Set[String] = Option(mt.getSchema.getRequired).map(_.asScala.toSet).getOrElse(Set.empty)
   }
 
   implicit class SchemaExt(schema: Schema[_]) {
+    def extractEnum(): Option[List[String]] =
+      Option(schema.getEnum())
+        .map(_.asScala.map(_.asInstanceOf[String]).to[List])
+
     def getSimpleRef: Option[String] =
       Option(schema.get$ref()).flatMap(_.split('/').lastOption)
   }
@@ -48,7 +51,7 @@ object Common {
     def isInFormData: Boolean = parameter.getIn == "formData"
     def isRef: Boolean        = Option(parameter.get$ref()).isDefined
 
-    def getSimpleRef =
+    def getSimpleRef: String =
       if (isRef) {
         parameter.get$ref().split('/').last
       } else {

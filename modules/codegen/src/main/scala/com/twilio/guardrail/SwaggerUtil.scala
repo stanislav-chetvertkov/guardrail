@@ -275,14 +275,19 @@ object SwaggerUtil {
       case o: ObjectSchema =>
         objectType(None).map(Resolved[L](_, None, None)) // TODO: o.getProperties
 
+      case ref: Schema[_] if ref.getSimpleRef.isDefined =>
+        getSimpleRef(ref).map(Deferred[L])
+
       case b: BooleanSchema =>
         (typeName[L, F]("boolean", None, ScalaType(b)), Default(b).extract[Boolean].traverse(litBoolean(_))).mapN(Resolved[L](_, None, _))
+
       case s: StringSchema =>
         (typeName[L, F]("string", Option(s.getFormat()), ScalaType(s)), Default(s).extract[String].traverse(litString(_)))
           .mapN(Resolved[L](_, None, _))
 
       case d: DateSchema =>
         typeName[L, F]("string", Some("date"), ScalaType(d)).map(Resolved[L](_, None, None))
+
       case d: DateTimeSchema =>
         typeName[L, F]("string", Some("date-time"), ScalaType(d)).map(Resolved[L](_, None, None))
 
@@ -291,9 +296,6 @@ object SwaggerUtil {
 
       case d: NumberSchema =>
         typeName[L, F]("number", Some(d.getFormat), ScalaType(d)).map(Resolved[L](_, None, None))
-
-      case ref: Schema[_] if Option(ref.get$ref()).isDefined =>
-        getSimpleRef(ref).map(Deferred[L])
 
       case x =>
         fallbackPropertyTypeHandler(x).map(Resolved[L](_, None, None))
