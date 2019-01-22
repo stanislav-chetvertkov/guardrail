@@ -233,10 +233,6 @@ object ProtocolGenerator {
 
     for {
       props <- extractProperties(model)
-      _ = if (clsName == "User") { //
-        print("df")
-      }
-
       requiredFields           = Option(model.getRequired).map(_.asScala.toList).getOrElse(List.empty)
       needCamelSnakeConversion = props.forall { case (k, _) => couldBeSnakeCase(k) }
       params <- props.traverse({

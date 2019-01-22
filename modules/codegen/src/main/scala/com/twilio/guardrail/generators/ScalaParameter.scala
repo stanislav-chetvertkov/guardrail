@@ -16,6 +16,7 @@ import cats.implicits._
 import cats.arrow.FunctionK
 import cats.free.Free
 import cats.data.{ EitherK, EitherT }
+import Common._
 
 case class RawParameterName private[generators] (value: String)
 class ScalaParameters[L <: LA](val parameters: List[ScalaParameter[L]]) {
@@ -83,46 +84,51 @@ object ScalaParameter {
           })
 
       param match {
-        case x: Parameter if x.getIn == "body" =>
+        case r: Parameter if r.isRef =>
+          getRefParameterRef(r)
+            .map(SwaggerUtil.Deferred(_): SwaggerUtil.ResolvedType[L])
+
+        case x: Parameter if x.isInBody =>
           getBodyParameterSchema(x).flatMap(x => SwaggerUtil.modelMetaType[L, F](x))
 
-        case x: Parameter if x.getIn == "header" =>
+        case x: Parameter if x.isInHeader =>
           getHeaderParameterType(x).flatMap(
             tpeName =>
-              (SwaggerUtil.typeName[L, F](tpeName, Option(x.getSchema.getFormat()), ScalaType(x)), getDefault(x)).mapN(SwaggerUtil.Resolved[L](_, None, _))
+              (SwaggerUtil.typeName[L, F](tpeName, Option(x.format()), ScalaType(x)), getDefault(x))
+                .mapN(SwaggerUtil.Resolved[L](_, None, _))
           )
 
-        case x: Parameter if x.getIn == "path" =>
+        case x: Parameter if x.isInPath =>
           getPathParameterType(x)
             .flatMap(
               tpeName =>
-                (SwaggerUtil.typeName[L, F](tpeName, Option(x.getSchema.getFormat()), ScalaType(x)), getDefault(x)).mapN(SwaggerUtil.Resolved[L](_, None, _))
+                (SwaggerUtil.typeName[L, F](tpeName, Option(x.format()), ScalaType(x)), getDefault(x))
+                  .mapN(SwaggerUtil.Resolved[L](_, None, _))
             )
 
-        case x: Parameter if x.getIn == "query" =>
+        case x: Parameter if x.isInQuery =>
           getQueryParameterType(x)
             .flatMap(
               tpeName =>
-                (SwaggerUtil.typeName[L, F](tpeName, Option(x.getSchema.getFormat()), ScalaType(x)), getDefault(x)).mapN(SwaggerUtil.Resolved[L](_, None, _))
+                (SwaggerUtil.typeName[L, F](tpeName, Option(x.format()), ScalaType(x)), getDefault(x))
+                  .mapN(SwaggerUtil.Resolved[L](_, None, _))
             )
 
-        case x: Parameter if x.getIn == "cookie" =>
+        case x: Parameter if x.isInCookies =>
           getCookieParameterType(x)
             .flatMap(
               tpeName =>
-                (SwaggerUtil.typeName[L, F](tpeName, Option(x.getSchema.getFormat()), ScalaType(x)), getDefault(x)).mapN(SwaggerUtil.Resolved[L](_, None, _))
+                (SwaggerUtil.typeName[L, F](tpeName, Option(x.format()), ScalaType(x)), getDefault(x))
+                  .mapN(SwaggerUtil.Resolved[L](_, None, _))
             )
 
-        case x: Parameter if x.getIn == "formData" =>
+        case x: Parameter if x.isInFormData =>
           getFormParameterType(x)
             .flatMap(
               tpeName =>
-                (SwaggerUtil.typeName[L, F](tpeName, Option(x.getSchema.getFormat()), ScalaType(x)), getDefault(x)).mapN(SwaggerUtil.Resolved[L](_, None, _))
+                (SwaggerUtil.typeName[L, F](tpeName, Option(x.format()), ScalaType(x)), getDefault(x))
+                  .mapN(SwaggerUtil.Resolved[L](_, None, _))
             )
-
-        case r: Parameter if Option(r.get$ref()).isDefined =>
-          getRefParameterRef(r)
-            .map(SwaggerUtil.Deferred(_): SwaggerUtil.ResolvedType[L])
 
         case x =>
           fallbackParameterHandler(x)
@@ -130,10 +136,7 @@ object ScalaParameter {
     }
 
     for {
-      meta <- paramMeta(parameter)
-      _ = if (parameter.getName == "file") {
-        print(meta)
-      }
+      meta     <- paramMeta(parameter)
       resolved <- SwaggerUtil.ResolvedType.resolve[L, F](meta, protocolElems)
       SwaggerUtil.Resolved(paramType, _, baseDefaultValue) = resolved
 
@@ -169,10 +172,8 @@ object ScalaParameter {
       paramName <- pureTermName(toCamelCase(name))
       param     <- pureMethodParameter(paramName, declType, defaultValue)
 
-      ftpe <- fileType(None)
-      isFileType <- {
-        typesEqual(paramType, ftpe)
-      }
+      ftpe       <- fileType(None)
+      isFileType <- typesEqual(paramType, ftpe)
     } yield {
       new ScalaParameter[L](Option(parameter.getIn),
                             param,

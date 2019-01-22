@@ -79,7 +79,8 @@ object SwaggerGenerator {
         Target.fromOption(Option(parameter.getSchema.getType()), s"Missing type")
 
       case GetRefParameterRef(parameter) =>
-        Target.fromOption(Option(parameter.get$ref()), "$ref not defined")
+        import Common._
+        Target.fromOption(Option(parameter.getSimpleRef), "$ref not defined")
 
       case FallbackParameterHandler(parameter) =>
         Target.raiseError(s"Unsure how to handle ${parameter}")

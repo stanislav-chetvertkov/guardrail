@@ -17,53 +17,83 @@ import io.swagger.v3.oas.models.media.{ ArraySchema, ObjectSchema, Schema }
 import io.swagger.v3.oas.models.parameters.{ Parameter, RequestBody }
 import io.swagger.v3.oas.models.responses.ApiResponse
 
+import scala.collection.immutable
 import scala.util.Try
 
 case class RouteMeta(path: String, method: HttpMethod, operation: Operation) {
 
-  /** Temporary hack method to adapt to open-api v3 spec */
-  private def extractParamsFromRequestBody(requestBody: RequestBody, contentType: String) =
+  import Common._
+
+  private def extractRefParamFromRequestBody(requestBody: RequestBody) =
     Try {
-      requestBody.getContent.get(contentType).getSchema.getProperties.asScala.toList.map {
-        case (name, schema) =>
-          val p = new Parameter
+      requestBody.getContent.values().asScala.toList.flatMap { mt =>
+        Option(mt.getSchema.get$ref())
+          .map { ref =>
+            val p = new Parameter
 
-          if (schema.getFormat == "binary") {
-            schema.setType("file")
-            schema.setFormat(null)
+            val schema = mt.getSchema
+
+            if (schema.getFormat == "binary") {
+              schema.setType("file")
+              schema.setFormat(null)
+            }
+
+            p.setIn("body")
+            p.setName("body")
+            p.setSchema(schema)
+            p.set$ref(ref)
+
+            p.setRequired(requestBody.getRequired)
+            p.setExtensions(Option(schema.getExtensions).getOrElse(new util.HashMap[String, Object]()))
+            p
           }
+      }
+    }.map(_.headOption).toOption.flatten
 
-          p.setName(name)
-          p.setIn("formData")
-          p.setSchema(schema)
-          p.setExtensions(new util.HashMap[String, Object]())
-          p
+  /** Temporary hack method to adapt to open-api v3 spec */
+  private def extractParamsFromRequestBody(requestBody: RequestBody): List[Parameter] =
+    Try {
+      requestBody.getContent.values().asScala.toList.flatMap { mt =>
+        val requiredFields = mt.requiredFields()
+        Option(mt.getSchema.getProperties).map(_.asScala.toList).getOrElse(List.empty).map {
+          case (name, schema) =>
+            val p = new Parameter
+
+            if (schema.getFormat == "binary") {
+              schema.setType("file")
+              schema.setFormat(null)
+            }
+
+            p.setName(name)
+            p.setIn("formData")
+            p.setSchema(schema)
+
+//            assert(operation.getRequestBody.getRequired == requiredFields.contains(name))
+
+            p.setRequired(requiredFields.contains(name) || requestBody.getRequired)
+            p.setExtensions(Option(schema.getExtensions).getOrElse(new util.HashMap[String, Object]()))
+            p
+        }
+
       }
     }.toOption.getOrElse(List.empty)
 
-  private val parameters = { //option of list is a bad signature
+  private val parameters: Option[List[Parameter]] = { //option of list is a bad signature
     val p = Option(operation.getParameters)
       .map(_.asScala.toList)
+      .getOrElse(List.empty)
 
-    //fixme can have formData parameters defined with empty operation.getParameters
-    //fixme try using monoid of option/list
-    p.map(
-      _ ++
-        extractParamsFromRequestBody(operation.getRequestBody, "multipart/form-data") ++
-        extractParamsFromRequestBody(operation.getRequestBody, "application/x-www-form-urlencoded")
-    )
+    val params = Option((extractRefParamFromRequestBody(operation.getRequestBody) ++ p ++ extractParamsFromRequestBody(operation.getRequestBody)).toList)
+    params
   }
 
   def getParameters[L <: LA, F[_]](
       protocolElems: List[StrictProtocolElems[L]]
   )(implicit Fw: FrameworkTerms[L, F], Sc: ScalaTerms[L, F], Sw: SwaggerTerms[L, F]): Free[F, ScalaParameters[L]] = {
-    if (operation.getOperationId == "uploadFile") {
-      print("here")
-    }
-
-    parameters
+    val x = parameters
       .fold(Free.pure[F, List[ScalaParameter[L]]](List.empty))(ScalaParameter.fromParameters(protocolElems))
-      .map(new ScalaParameters[L](_))
+
+    x.map(new ScalaParameters[L](_))
   }
 }
 

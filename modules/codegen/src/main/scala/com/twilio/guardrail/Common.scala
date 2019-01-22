@@ -19,11 +19,37 @@ import java.util.Locale
 import scala.collection.JavaConverters._
 import scala.io.AnsiColor
 import scala.meta._
+import _root_.io.swagger.v3.oas.models.parameters.Parameter
+import _root_.io.swagger.v3.oas.models.media.MediaType
 
 object Common {
 
   // fixme: temporary means of using open-api v3 model without introducing too many changes at the same time
   // fixme: remove
+
+  implicit class MediaTypeExt(mt: MediaType) {
+    def requiredFields(): Set[String] = Option(mt.getSchema.getRequired).map(_.asScala.toSet).getOrElse(Set.empty)
+  }
+
+  implicit class ParameterExt(parameter: Parameter) {
+    def format(): String = parameter.getSchema.getFormat()
+
+    def isInCookies: Boolean  = parameter.getIn == "cookie"
+    def isInQuery: Boolean    = parameter.getIn == "query"
+    def isInPath: Boolean     = parameter.getIn == "path"
+    def isInHeader: Boolean   = parameter.getIn == "header"
+    def isInBody: Boolean     = parameter.getIn == "body"
+    def isInFormData: Boolean = parameter.getIn == "formData"
+    def isRef: Boolean        = Option(parameter.get$ref()).isDefined
+
+    def getSimpleRef =
+      if (isRef) {
+        parameter.get$ref().split('/').last
+      } else {
+        throw new IllegalStateException("not a ref")
+      }
+
+  }
 
   implicit class OpenApiExt(swagger: OpenAPI) {
     val serverUrls: List[String] = swagger.getServers.asScala.toList.map(_.getUrl)
