@@ -1,6 +1,7 @@
 package codegen
 
 import java.nio.file.{ Path, Paths }
+import java.util
 
 import _root_.io.swagger.v3.oas.models.OpenAPI
 import cats.data.NonEmptyList
@@ -9,11 +10,16 @@ import com.twilio.guardrail.core.CoreTermInterp
 import com.twilio.guardrail.terms.CoreTerm
 import org.scalatest.{ FunSuite, Matchers }
 
+import io.swagger.parser.OpenAPIParser
+import io.swagger.v3.parser.core.models.ParseOptions
+
 import scala.meta._
 import _root_.io.swagger.v3.parser.OpenAPIV3Parser
 
 class WritePackageSpec extends FunSuite with Matchers {
-  val swagger: OpenAPI = new OpenAPIV3Parser().readContents(s"""
+  val swagger: OpenAPI = new OpenAPIV3Parser()
+    .readContents(
+      s"""
     |swagger: "2.0"
     |info:
     |  title: Whatever
@@ -48,7 +54,11 @@ class WritePackageSpec extends FunSuite with Matchers {
     |    properties:
     |      a:
     |        type: string
-    |""".stripMargin).getOpenAPI
+    |""".stripMargin,
+      new util.LinkedList(),
+      new ParseOptions
+    )
+    .getOpenAPI
 
   def injectSwagger[T](s: OpenAPI, rs: ReadSwagger[T]): T = rs.next(s)
 

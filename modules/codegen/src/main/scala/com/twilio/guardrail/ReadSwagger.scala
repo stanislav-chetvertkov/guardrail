@@ -1,10 +1,12 @@
 package com.twilio.guardrail
 
 import java.nio.file.Path
+import java.util
 
 import cats._
+import io.swagger.parser.OpenAPIParser
 import io.swagger.v3.oas.models.OpenAPI
-import io.swagger.v3.parser.OpenAPIV3Parser
+import io.swagger.v3.parser.core.models.ParseOptions
 
 import scala.io.AnsiColor
 
@@ -20,7 +22,7 @@ object ReadSwagger {
 
   def readSwagger[T](rs: ReadSwagger[T]): Either[String, T] =
     if (rs.path.toFile.exists()) {
-      Option(new OpenAPIV3Parser().read(rs.path.toAbsolutePath.toString))
+      Option(new OpenAPIParser().readLocation(rs.path.toAbsolutePath.toString, new util.LinkedList(), new ParseOptions).getOpenAPI)
         .map(rs.next)
         .toRight(s"Spec file ${rs.path} is incorrectly formatted.")
     } else {

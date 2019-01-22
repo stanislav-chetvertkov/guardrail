@@ -1,7 +1,11 @@
 package swagger
 
+import java.util
+
 import com.twilio.guardrail.extract.VendorExtension
+import io.swagger.parser.OpenAPIParser
 import io.swagger.v3.parser.OpenAPIV3Parser
+import io.swagger.v3.parser.core.models.ParseOptions
 import org.scalatest.{ FunSuite, Matchers }
 
 import scala.collection.JavaConverters._
@@ -44,7 +48,7 @@ class VendorExtensionTest extends FunSuite with Matchers {
     |""".stripMargin
 
   test("Able to extract strings") {
-    val swagger = new OpenAPIV3Parser().read(spec)
+    val swagger = new OpenAPIParser().readContents(spec, new util.LinkedList(), new ParseOptions).getOpenAPI
     VendorExtension(swagger).extract[String]("x-scala-garbage") should equal(Some("io.swagger.models.Swagger"))
     for {
       (k, v) <- swagger.getPaths.asScala

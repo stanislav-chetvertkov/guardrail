@@ -1,6 +1,9 @@
 package support
+import java.util
+
 import com.twilio.guardrail.Common._
-import io.swagger.v3.parser.OpenAPIV3Parser
+import io.swagger.parser.OpenAPIParser
+import io.swagger.v3.parser.core.models.ParseOptions
 
 trait SwaggerSpecRunner {
 
@@ -16,7 +19,7 @@ trait SwaggerSpecRunner {
   def runSwaggerSpec(
       spec: String
   ): (Context, FunctionK[CodegenApplication, Target]) => (ProtocolDefinitions[ScalaLanguage], Clients[ScalaLanguage], Servers[ScalaLanguage]) =
-    runSwagger(new OpenAPIV3Parser().read(spec)) _
+    runSwagger(new OpenAPIParser().readContents(spec, new util.LinkedList(), new ParseOptions).getOpenAPI)
 
   def runSwagger(swagger: OpenAPI)(context: Context, framework: FunctionK[CodegenApplication, Target])(
       implicit F: FrameworkTerms[ScalaLanguage, CodegenApplication],
@@ -33,7 +36,7 @@ trait SwaggerSpecRunner {
       schemes  = swagger.schemes()
       host     = swagger.host()
       basePath = swagger.basePath()
-      paths = swagger.getPathsOpt()
+      paths    = swagger.getPathsOpt()
 
       routes <- extractOperations(paths)
       classNamedRoutes <- routes
