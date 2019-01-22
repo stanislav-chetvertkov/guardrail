@@ -1,7 +1,7 @@
 package com.twilio.guardrail
 package terms
 
-import java.util
+import java.{ lang, util }
 
 import cats.MonadError
 import cats.free.Free
@@ -16,11 +16,37 @@ import io.swagger.v3.oas.models.PathItem.HttpMethod
 import io.swagger.v3.oas.models.media.{ ArraySchema, ObjectSchema, Schema }
 import io.swagger.v3.oas.models.parameters.{ Parameter, RequestBody }
 import io.swagger.v3.oas.models.responses.ApiResponse
+
 import scala.util.Try
 
 case class RouteMeta(path: String, method: HttpMethod, operation: Operation) {
 
   import Common._
+
+  private def extractPrimitiveFromRequestBody(requestBody: RequestBody) =
+    Try {
+      requestBody.getContent.values().asScala.toList.flatMap { mt =>
+        Option(mt.getSchema.getType())
+          .map { tpe =>
+            val p = new Parameter
+
+            val schema = mt.getSchema
+
+            if (schema.getFormat == "binary") {
+              schema.setType("file")
+              schema.setFormat(null)
+            }
+
+            p.setIn("body")
+            p.setName("body")
+            p.setSchema(schema)
+            p.setRequired(requestBody.getRequired)
+
+            p.setExtensions(Option(schema.getExtensions).getOrElse(new util.HashMap[String, Object]()))
+            p
+          }
+      }
+    }.map(_.headOption).toOption.flatten
 
   private def extractRefParamFromRequestBody(requestBody: RequestBody) =
     Try {
@@ -42,6 +68,7 @@ case class RouteMeta(path: String, method: HttpMethod, operation: Operation) {
             p.set$ref(ref)
 
             p.setRequired(requestBody.getRequired)
+
             p.setExtensions(Option(schema.getExtensions).getOrElse(new util.HashMap[String, Object]()))
             p
           }
@@ -53,6 +80,7 @@ case class RouteMeta(path: String, method: HttpMethod, operation: Operation) {
     Try {
       requestBody.getContent.values().asScala.toList.flatMap { mt =>
         val requiredFields = mt.requiredFields()
+
         Option(mt.getSchema.getProperties).map(_.asScala.toList).getOrElse(List.empty).map {
           case (name, schema) =>
             val p = new Parameter
@@ -68,7 +96,14 @@ case class RouteMeta(path: String, method: HttpMethod, operation: Operation) {
 
 //            assert(operation.getRequestBody.getRequired == requiredFields.contains(name))
 
-            p.setRequired(requiredFields.contains(name) || requestBody.getRequired)
+            val isRequired: Boolean = if (requiredFields.nonEmpty) {
+              requiredFields.contains(name)
+            } else {
+              val x: Option[Boolean] = Option(requestBody.getRequired)
+              x.getOrElse(false)
+            }
+
+            p.setRequired(isRequired)
             p.setExtensions(Option(schema.getExtensions).getOrElse(new util.HashMap[String, Object]()))
             p
         }
@@ -81,7 +116,16 @@ case class RouteMeta(path: String, method: HttpMethod, operation: Operation) {
       .map(_.asScala.toList)
       .getOrElse(List.empty)
 
-    val params = Option((extractRefParamFromRequestBody(operation.getRequestBody) ++ p ++ extractParamsFromRequestBody(operation.getRequestBody)).toList)
+    if (operation.getOperationId == "uploadFile") {
+      print(operation)
+    }
+
+    val params = Option(
+      (extractRefParamFromRequestBody(operation.getRequestBody) ++
+        p ++
+        extractParamsFromRequestBody(operation.getRequestBody) ++
+        extractPrimitiveFromRequestBody(operation.getRequestBody)).toList
+    )
     params
   }
 
