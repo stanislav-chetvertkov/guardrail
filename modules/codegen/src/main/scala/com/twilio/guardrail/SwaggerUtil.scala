@@ -20,7 +20,7 @@ import scala.language.reflectiveCalls
 import scala.meta._
 import com.twilio.guardrail.languages.ScalaLanguage
 import com.twilio.guardrail.protocol.terms.protocol.PropMeta
-
+import Common._
 import scala.collection.JavaConverters._
 
 object SwaggerUtil {
@@ -140,7 +140,7 @@ object SwaggerUtil {
       import Sc._
       import Sw._
       model match {
-        case ref: Schema[_] if Option(ref.get$ref()).isDefined =>
+        case ref: Schema[_] if ref.getSimpleRef.isDefined =>
           for {
             ref <- getSimpleRef(ref) //fixme
           } yield Deferred[L](ref)
@@ -179,7 +179,7 @@ object SwaggerUtil {
         case (clsName, comp: ComposedSchema) =>
           for {
             x <- pureTypeName(clsName).flatMap(widenTypeName)
-            parentSimpleRef = comp.getAllOf.asScala.headOption.map(_.get$ref())
+            parentSimpleRef = comp.getAllOf.asScala.headOption.flatMap(_.getSimpleRef)
             parentTerm <- parentSimpleRef.traverse(n => pureTermName(n))
             resolvedType = SwaggerUtil.Resolved[L](x, parentTerm, None): SwaggerUtil.ResolvedType[L]
           } yield (clsName, resolvedType)

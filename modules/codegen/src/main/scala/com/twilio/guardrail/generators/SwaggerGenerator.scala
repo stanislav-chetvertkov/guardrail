@@ -9,6 +9,7 @@ import com.twilio.guardrail.extract.ScalaPackage
 import com.twilio.guardrail.languages.ScalaLanguage
 import com.twilio.guardrail.terms._
 import scala.collection.JavaConverters._
+import Common._
 
 object SwaggerGenerator {
   object SwaggerInterp extends (SwaggerTerm[ScalaLanguage, ?] ~> Target) {
@@ -57,8 +58,8 @@ object SwaggerGenerator {
       case GetParameterName(parameter) =>
         Target.fromOption(Option(parameter.getName()), "Parameter missing \"name\"")
 
-//      case GetBodyParameterSchema(parameter) =>
-//        Target.fromOption(Option(parameter.getSchema().getType()), "Schema not specified")
+      case GetBodyParameterSchema(parameter) =>
+        Target.fromOption(Option(parameter.getSchema().getType()), "Schema not specified")
 
       case GetHeaderParameterType(parameter) =>
         Target.fromOption(Option(parameter.getSchema.getType()), s"Missing type")
@@ -95,13 +96,10 @@ object SwaggerGenerator {
         Target.fromOption(Option(operation.getResponses).map(_.asScala.toMap), s"No responses defined for ${operationId}")
 
       case GetSimpleRef(ref) =>
-        Target.fromOption(
-          Option(ref.get$ref()).flatMap(_.split("/").lastOption),
-          "Unspecified $ref"
-        )
+        Target.fromOption(ref.getSimpleRef, s"Unspecified $ref")
 
       case GetSimpleRefP(ref) =>
-        Target.fromOption(Option(ref.get$ref()), "Unspecified $ref")
+        Target.fromOption(ref.getSimpleRef, s"Unspecified $ref")
 
       case GetItems(arr) =>
         Target.fromOption(Option(arr.getItems()), "items.type unspecified")

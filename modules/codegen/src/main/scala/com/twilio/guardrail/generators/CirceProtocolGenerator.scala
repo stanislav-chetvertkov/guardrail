@@ -13,6 +13,7 @@ import com.twilio.guardrail.protocol.terms.protocol._
 import scala.collection.JavaConverters._
 import scala.meta._
 import _root_.io.swagger.v3.oas.models.media._
+import Common._
 
 object CirceProtocolGenerator {
   import ProtocolGenerator._
@@ -98,7 +99,7 @@ object CirceProtocolGenerator {
           (swagger match {
             case m: ObjectSchema      => Option(m.getProperties)
             case comp: ComposedSchema => comp.getAllOf().asScala.toList.lastOption.flatMap(prop => Option(prop.getProperties))
-            case comp: Schema[_] if Option(comp.get$ref()).isDefined =>
+            case comp: Schema[_] if comp.getSimpleRef.isDefined =>
               Option(comp.getProperties)
             case _ => None
           }).map(_.asScala.toList).toList.flatten
@@ -364,11 +365,13 @@ object CirceProtocolGenerator {
           (model match {
             case elem: ComposedSchema =>
               definitions.collectFirst {
-                case (clsName, e) if elem.getAllOf.asScala.exists(_.get$ref().endsWith(clsName)) =>
+                case (clsName, e) if Option(elem.getAllOf).map(_.asScala).getOrElse(List.empty)
+                  .exists(s => s.getSimpleRef.contains(clsName)) => //fixme extract
+
                   (clsName,
                    e,
                    elem.getAllOf.asScala
-                     .filter(s => Option(s.get$ref()).isDefined)
+                     .filter(s => s.getSimpleRef.isDefined)
                      .tail
                      .toList)
               }

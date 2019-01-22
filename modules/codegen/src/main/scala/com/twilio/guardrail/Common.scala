@@ -21,6 +21,7 @@ import scala.io.AnsiColor
 import scala.meta._
 import _root_.io.swagger.v3.oas.models.parameters.Parameter
 import _root_.io.swagger.v3.oas.models.media.MediaType
+import _root_.io.swagger.v3.oas.models.media.Schema
 
 object Common {
 
@@ -29,6 +30,11 @@ object Common {
 
   implicit class MediaTypeExt(mt: MediaType) {
     def requiredFields(): Set[String] = Option(mt.getSchema.getRequired).map(_.asScala.toSet).getOrElse(Set.empty)
+  }
+
+  implicit class SchemaExt(schema: Schema[_]) {
+    def getSimpleRef: Option[String] =
+      Option(schema.get$ref()).flatMap(_.split('/').lastOption)
   }
 
   implicit class ParameterExt(parameter: Parameter) {

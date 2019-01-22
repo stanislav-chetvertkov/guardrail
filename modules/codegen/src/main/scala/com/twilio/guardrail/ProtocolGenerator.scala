@@ -17,6 +17,7 @@ import scala.collection.JavaConverters._
 import scala.language.higherKinds
 import scala.language.postfixOps
 import scala.language.reflectiveCalls
+import Common._
 
 case class ProtocolDefinitions[L <: LA](elems: List[StrictProtocolElems[L]],
                                         protocolImports: List[L#Import],
@@ -86,11 +87,8 @@ object ProtocolGenerator {
 
     for {
       enum <- extractEnum(swagger)
-      tpe <- {
-        println(swagger)
-        SwaggerUtil.typeName(tpeName, Option(swagger.getFormat()), ScalaType(swagger))
-      }
-      res <- enum.traverse(validProg(_, tpe))
+      tpe  <- SwaggerUtil.typeName(tpeName, Option(swagger.getFormat()), ScalaType(swagger))
+      res  <- enum.traverse(validProg(_, tpe))
     } yield res
   }
 
@@ -183,8 +181,8 @@ object ProtocolGenerator {
           .flatMap(
             x =>
               definitions.collectFirst[Schema[_]] {
-                case (cls, y: ComposedSchema) => y //fixme
-//                case (cls, y: ObjectSchema) if x.get$ref().endsWith(cls)   => y //fixme
+                case (cls, y: ComposedSchema) if x.getSimpleRef.contains(cls) => y
+                case (cls, y: Schema[_]) if x.getSimpleRef.contains(cls)      => y
             }
           )
         for {
@@ -196,9 +194,9 @@ object ProtocolGenerator {
             case (name, prop) =>
               SwaggerUtil
                 .propMeta[L, F](prop)
-                .flatMap(transformProperty(clsName, needCamelSnakeConversion, concreteTypes)(name, prop, _, false)) //fixme: change to option???
+                .flatMap(transformProperty(clsName, needCamelSnakeConversion, concreteTypes)(name, prop, _, isRequired = false)) //fixme: change to option???
           })
-          interfacesCls = interfaces.map(_.get$ref())
+          interfacesCls = interfaces.map(_.getSimpleRef.getOrElse(""))
           tpe <- parseTypeName(clsName)
         } yield
           tpe
@@ -325,7 +323,7 @@ object ProtocolGenerator {
       (model match {
         case elem: ComposedSchema =>
           definitions.collectFirst {
-            case (clsName, element) if elem.getAllOf.asScala.exists(r => Option(r.get$ref()).getOrElse("").endsWith(clsName)) => element //todo simple ref
+            case (clsName, element) if elem.getAllOf.asScala.exists(r => r.getSimpleRef.contains(clsName)) => element
           }
         case _ => None
       }) match {
@@ -339,9 +337,7 @@ object ProtocolGenerator {
           if Option(comp.getAllOf)
             .map(_.asScala)
             .getOrElse(List.empty)
-            .map(s => Option(s.get$ref()).getOrElse(""))
-            .exists(r => r.endsWith(cls)) => //todo simple ref
-
+            .exists(_.getSimpleRef.contains(cls)) =>
         ClassChild(clsName, comp, children(clsName, comp))
     }
 
@@ -385,11 +381,11 @@ object ProtocolGenerator {
     val definitionsWithoutPoly: List[(String, Schema[_])] = definitions.filter { // filter out polymorphic definitions
       case (clsName, _: ComposedSchema) if definitions.exists {
             case (_, m: ComposedSchema) =>
-              m.getAllOf.asScala
-                .map(s => Option(s.get$ref()))
+              Option(m.getAllOf)
+                .map(_.asScala.toList)
+                .map(_.headOption)
                 .collect { case Some(x) => x }
-                .exists(ref => ref.endsWith(clsName))
-
+                .exists(s => s.getSimpleRef.contains(clsName))
             case _ => false
           } =>
         false
