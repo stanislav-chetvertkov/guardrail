@@ -82,7 +82,7 @@ object ProtocolGenerator {
 
     // Default to `string` for untyped enums.
     // Currently, only plain strings are correctly supported anyway, so no big loss.
-    val tpeName = "string" //fixme Option(swagger.getType()).getOrElse("string")
+    val tpeName = Option(swagger.getType).getOrElse("string")
     //fixme why is it objectSchema and not StringSchema
 
     for {
@@ -144,7 +144,7 @@ object ProtocolGenerator {
         case (name, prop) =>
           SwaggerUtil
             .propMeta[L, F](prop)
-            .flatMap(transformProperty(hierarchy.name, needCamelSnakeConversion, concreteTypes)(name, prop, _, false)) //fixme: change to option???
+            .flatMap(transformProperty(hierarchy.name, needCamelSnakeConversion, concreteTypes)(name, prop, _, isRequired = false))
       })
       terms = params.map(_.term)
       definition <- renderSealedTrait(hierarchy.name, terms, discriminator, parents)
@@ -194,7 +194,7 @@ object ProtocolGenerator {
             case (name, prop) =>
               SwaggerUtil
                 .propMeta[L, F](prop)
-                .flatMap(transformProperty(clsName, needCamelSnakeConversion, concreteTypes)(name, prop, _, isRequired = false)) //fixme: change to option???
+                .flatMap(transformProperty(clsName, needCamelSnakeConversion, concreteTypes)(name, prop, _, isRequired = false))
           })
           interfacesCls = interfaces.map(_.getSimpleRef.getOrElse(""))
           tpe <- parseTypeName(clsName)
@@ -376,7 +376,7 @@ object ProtocolGenerator {
     import P._
 
     val definitions = Option(swagger.getComponents.getSchemas).toList.flatMap(_.asScala)
-    val hierarchies = groupHierarchies(definitions) //fixme hierarchies are empty
+    val hierarchies = groupHierarchies(definitions)
 
     val definitionsWithoutPoly: List[(String, Schema[_])] = definitions.filter { // filter out polymorphic definitions
       case (clsName, _: ComposedSchema) if definitions.exists {
@@ -399,14 +399,6 @@ object ProtocolGenerator {
       elems <- definitionsWithoutPoly.traverse {
         case (clsName, model) =>
           model match {
-            case m: Schema[_] =>
-              for {
-                enum    <- fromEnum(clsName, m)
-                parents <- extractParents(m, definitions, concreteTypes)
-                model   <- fromModel(clsName, m, parents, concreteTypes)
-                alias   <- modelTypeAlias(clsName, m)
-              } yield enum.orElse(model).getOrElse(alias)
-
             case comp: ComposedSchema =>
               for {
                 parents <- extractParents(comp, definitions, concreteTypes)
@@ -416,6 +408,15 @@ object ProtocolGenerator {
 
             case arr: ArraySchema =>
               fromArray(clsName, arr, concreteTypes)
+
+            case m: Schema[_] =>
+              for {
+                enum    <- fromEnum(clsName, m)
+                parents <- extractParents(m, definitions, concreteTypes)
+                model   <- fromModel(clsName, m, parents, concreteTypes)
+                alias   <- modelTypeAlias(clsName, m)
+              } yield enum.orElse(model).getOrElse(alias)
+
             case x =>
               println(s"Warning: ${x} being treated as Json")
               plainTypeAlias[L, F](clsName)

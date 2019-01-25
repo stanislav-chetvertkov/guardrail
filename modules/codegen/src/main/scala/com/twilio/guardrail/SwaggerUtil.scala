@@ -142,7 +142,7 @@ object SwaggerUtil {
       model match {
         case ref: Schema[_] if ref.getSimpleRef.isDefined =>
           for {
-            ref <- getSimpleRef(ref) //fixme
+            ref <- getSimpleRef(ref)
           } yield Deferred[L](ref)
 
         case arr: ArraySchema =>
@@ -264,7 +264,7 @@ object SwaggerUtil {
         } yield res
       case m: MapSchema =>
         for {
-          rec <- propMeta[L, F](m.getAdditionalProperties.asInstanceOf[Schema[_]]) //fixme could be boolean
+          rec <- propMeta[L, F](m.getAdditionalProperties.asInstanceOf[Schema[_]]) //fixme: the definition says it could be boolean
           res <- rec match {
             case Resolved(inner, dep, _) => liftMapType(inner).map(Resolved[L](_, dep, None))
             case x: DeferredMap[L]       => embedMap(x)
@@ -331,7 +331,7 @@ object SwaggerUtil {
       Option(operation.getResponses)
         .flatMap { responses =>
           getBestSuccessResponse(responses)
-            .flatMap[Schema[_]](resp => Option(resp.getContent.values().asScala.head.getSchema)) //fixme
+            .flatMap[Schema[_]](resp => Option(resp.getContent.values().asScala.head.getSchema)) //fixme: use of head
             .map(propMeta[L, F](_))
             .orElse(
               if (hasEmptySuccessType(responses))

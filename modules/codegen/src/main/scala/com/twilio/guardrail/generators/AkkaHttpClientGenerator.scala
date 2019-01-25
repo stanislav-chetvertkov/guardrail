@@ -248,19 +248,14 @@ object AkkaHttpClientGenerator {
           """
         }
 
+        import Common._
+
         for {
           // Placeholder for when more functions get logging
           _ <- Target.pure(())
 
-          produces = {
-            val tr = Try(operation.getResponses.values().asScala.toList.flatMap(apiResponse => apiResponse.getContent.keySet().asScala.toList))
-            if (tr.isFailure) {
-              print(tr)
-            }
-            tr.toOption
-              .getOrElse(Seq.empty)
-          }
-          consumes = Try(operation.getRequestBody.getContent.keySet()).toOption.fold(List.empty[String])(_.asScala.toList)
+          produces = operation.produces
+          consumes = operation.consumes
 
           // Get the response type
           responseTypeRef = SwaggerUtil.getResponseType[ScalaLanguage](httpMethod, responses, t"IgnoredEntity").tpe

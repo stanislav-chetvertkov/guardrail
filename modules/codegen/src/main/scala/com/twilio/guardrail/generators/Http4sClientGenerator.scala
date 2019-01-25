@@ -260,13 +260,14 @@ object Http4sClientGenerator {
           )
         }
 
+        import Common._
+
         for {
           // Placeholder for when more functions get logging
           _ <- Target.pure(())
 
-          consumes = Try(operation.getRequestBody.getContent.keySet()).toOption.fold(Seq.empty[String])(_.asScala.toList)
-          produces = Try(operation.getResponses.values().asScala.toList.flatMap(apiResponse => apiResponse.getContent.keySet().asScala.toList)).toOption
-            .getOrElse(Seq.empty)
+          consumes = operation.consumes
+          produces = operation.produces
 
           headerArgs = parameters.headerParams
           pathArgs   = parameters.pathParams

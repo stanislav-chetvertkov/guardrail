@@ -22,6 +22,9 @@ import scala.meta._
 import _root_.io.swagger.v3.oas.models.parameters.Parameter
 import _root_.io.swagger.v3.oas.models.media.MediaType
 import _root_.io.swagger.v3.oas.models.media.Schema
+import _root_.io.swagger.v3.oas.models.Operation
+
+import scala.util.Try
 
 object Common {
 
@@ -29,6 +32,16 @@ object Common {
 
   implicit class MediaTypeExt(mt: MediaType) {
     def requiredFields(): Set[String] = Option(mt.getSchema.getRequired).map(_.asScala.toSet).getOrElse(Set.empty)
+  }
+
+  implicit class OperationExt(operation: Operation) {
+    def produces: Seq[String] =
+      Try(operation.getResponses.values().asScala.toList.flatMap(apiResponse => apiResponse.getContent.keySet().asScala.toList)).toOption
+        .getOrElse(Seq.empty)
+
+    def consumes: Seq[String] =
+      Try(operation.getRequestBody.getContent.keySet()).toOption.fold(List.empty[String])(_.asScala.toList)
+
   }
 
   implicit class SchemaExt(schema: Schema[_]) {

@@ -360,8 +360,7 @@ object CirceProtocolGenerator {
                     if Option(elem.getAllOf)
                       .map(_.asScala)
                       .getOrElse(List.empty)
-                      .exists(s => s.getSimpleRef.contains(clsName)) => //fixme extract
-
+                      .exists(s => s.getSimpleRef.contains(clsName)) =>
                   (clsName,
                    e,
                    elem.getAllOf.asScala

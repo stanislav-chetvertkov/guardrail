@@ -37,7 +37,7 @@ object Http4sHelper {
             acc :+ (for {
               httpCode <- lookupStatusCode(key)
               (statusCode, statusCodeName) = httpCode
-              valueType <- resp.getContent.values().asScala.headOption.map(_.getSchema).traverse { prop => //fixme
+              valueType <- resp.getContent.values().asScala.headOption.map(_.getSchema).traverse { prop => //fixme: use of headOption
                 for {
                   meta     <- SwaggerUtil.propMeta[L, F](prop)
                   resolved <- SwaggerUtil.ResolvedType.resolve[L, F](meta, protocolElems)

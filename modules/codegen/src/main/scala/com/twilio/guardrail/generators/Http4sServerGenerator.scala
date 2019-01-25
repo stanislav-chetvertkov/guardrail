@@ -514,18 +514,11 @@ object Http4sServerGenerator {
             )
           )
         )
-//        val _ = {
-//          val x = Try(operation.getRequestBody.getContent.keySet())
-//          if (x.isFailure) {
-//            println("HOHOHOH")
-//            println(operation)
-//          }
-//        }
 
-        val consumes = Try(operation.getRequestBody.getContent.keySet()).toOption.fold(Seq.empty[String])(_.asScala.toList)
-        val produces: immutable.Seq[String] =
-          Option(operation.getResponses.values().asScala.toList.flatMap(apiResponse => apiResponse.getContent.keySet().asScala.toList))
-            .getOrElse(List.empty)
+        import Common._
+
+        val consumes = operation.consumes
+        val produces = operation.produces
         Some(
           RenderedRoute(
             fullRoute,

@@ -116,10 +116,6 @@ case class RouteMeta(path: String, method: HttpMethod, operation: Operation) {
       .map(_.asScala.toList)
       .getOrElse(List.empty)
 
-    if (operation.getOperationId == "uploadFile") {
-      print(operation)
-    }
-
     val params = Option(
       (extractRefParamFromRequestBody(operation.getRequestBody) ++
         p ++
